@@ -366,6 +366,8 @@ namespace AIService.Controllers
         [HttpPost]
         public HttpResponseMessage AddOptionalStock(string Code, long UserId)
         {
+            if (db.OptionalStocks.Where(s => s.UserId == UserId).ToList().Count == 10)
+                return ApiResponse.BadRequest("自选股最多只能选10支哟");
             OptionalStock optionalStock = new OptionalStock();
             try
             {
