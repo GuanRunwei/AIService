@@ -650,7 +650,16 @@ namespace AIService.Controllers
         [HttpGet]
         public HttpResponseMessage GetAssetsRankingList()
         {
-            return null;
+            var result = db.StockAccounts.Join(db.Users, s => s.UserId, u => u.Id, (s, u) => new { s.UserId, u.Username, u.ImageUrl, u.StockAge, s.SumMoney }).OrderByDescending(s=>s.SumMoney);
+            //List<StockAccount> stockAccounts = db.StockAccounts.ToList();
+            //List<User> users = db.Users.ToList();
+
+            //var result = from stockAccount in stockAccounts
+            //             join user in users 
+            //             on stockAccount.UserId equals user.Id
+            //             select new { UserId = user.Id, user.Username, user.ImageUrl, stockAccount.SumMoney };
+
+            return ApiResponse.Ok(result);
         }
         #endregion
 
