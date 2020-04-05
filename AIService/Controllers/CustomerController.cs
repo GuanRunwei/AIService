@@ -31,7 +31,7 @@ namespace AIService.Controllers
 
         #region 获取相似问题
         [HttpGet]
-        public IActionResult GetSimilarQuestionList(string Question, long UserId)
+        public IActionResult GetSimilarQuestionList(string Question)
         {
             List<Knowledge> knowledges = db.Knowledges.ToList();
             List<SearchHistory> histories = db.SearchHistories.ToList();
@@ -42,17 +42,7 @@ namespace AIService.Controllers
                 if (GetSimilarity(Question, histories[i].HistoricalText) > 0.85)
                     repetitions.Add(histories[i]);
             }
-            if (db.SearchHistories.Where(s => s.HistoricalText == Question).Count() == 0 && db.SearchHistories.Where(s => s.HistoricalText.Contains(Question)).Count() == 0 && repetitions.Count() == 0)
-            {
-                searchHistory = new SearchHistory
-                {
-                    SearchTime = DateTime.Now,
-                    HistoricalText = Question,
-                    UserId = UserId,
-                    User = db.Users.FirstOrDefault(s => s.Id == UserId)
-                };
 
-            }
             if(repetitions.Count()==1)
             {                
                 SearchHistory temp = repetitions.FirstOrDefault();
@@ -143,15 +133,28 @@ namespace AIService.Controllers
             Knowledge knowledge = db.Knowledges.FirstOrDefault(s => s.Id == KnowledgeId);
             try
             {
-                SearchHistory searchHistory = new SearchHistory()
+                if(db.SearchHistories.Where(s=>s.KnowledgeId==KnowledgeId).ToList().Count>0)
                 {
-                    SearchTime = DateTime.Now,
-                    HistoricalText = knowledge.Question,
-                    UserId = UserId,
-                    User = db.Users.FirstOrDefault(s => s.Id == UserId)
-                };
-                db.SearchHistories.Add(searchHistory);
-                db.SaveChanges();
+                    SearchHistory history = db.SearchHistories.FirstOrDefault(s => s.KnowledgeId == KnowledgeId);
+                    history.SearchTime = DateTime.Now;
+                    db.Entry(history).State = EntityState.Modified;
+                    db.SaveChanges();
+                }
+                else
+                {
+                    SearchHistory searchHistory = new SearchHistory()
+                    {
+                        KnowledgeId = KnowledgeId,
+                        SearchTime = DateTime.Now,
+                        HistoricalText = knowledge.Question,
+                        Answer = knowledge.Answer,
+                        UserId = UserId,
+                        User = db.Users.FirstOrDefault(s => s.Id == UserId)
+                    };
+                    db.SearchHistories.Add(searchHistory);
+                    db.SaveChanges();
+                }
+                
             }
             catch(Exception ex)
             {
