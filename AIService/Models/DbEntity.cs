@@ -12,9 +12,7 @@ namespace AIService.Models
         public DbSet<User> Users { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Dictionary> Dictionaries { get; set; }
-        public DbSet<Guide> Guides { get; set; }
         public DbSet<Knowledge> Knowledges { get; set; }
-        public DbSet<NeedlessWord> NeedlessWords { get; set; }
         public DbSet<News> News { get; set; }
         public DbSet<SearchHistory> SearchHistories { get; set; }
         public DbSet<Talk> Talks { get; set; }

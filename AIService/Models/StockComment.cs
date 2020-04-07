@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace AIService.Models
 {
-    public class StockComment
+    public class StockComment  //论股
     {
         #region 导航属性
         public virtual Stock Stock { get; set; }

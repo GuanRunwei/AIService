@@ -12,8 +12,8 @@ namespace AIService.Models
         public int ParentId { get; set; }
         #endregion
         public int Id { get; set; }
-        public string IndustryName { get; set; }
-        public string IndustryCode { get; set; }
-        public string ParentPlateName { get; set; }
+        public string IndustryName { get; set; }  //A股行业名称
+        public string IndustryCode { get; set; }  //行业代码
+        public string ParentPlateName { get; set; }  //父级行业代码
     }
 }

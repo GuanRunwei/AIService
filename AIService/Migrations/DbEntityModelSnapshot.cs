@@ -167,29 +167,6 @@ namespace AIService.Migrations
                     b.ToTable("FollowRecords");
                 });
 
-            modelBuilder.Entity("AIService.Models.Guide", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Content");
-
-                    b.Property<DateTime>("GuideTime");
-
-                    b.Property<string>("PicUrl1");
-
-                    b.Property<string>("PicUrl2");
-
-                    b.Property<string>("PicUrl3");
-
-                    b.Property<string>("Title");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Guides");
-                });
-
             modelBuilder.Entity("AIService.Models.HKSharePlate", b =>
                 {
                     b.Property<int>("Id")
@@ -222,19 +199,6 @@ namespace AIService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Knowledges");
-                });
-
-            modelBuilder.Entity("AIService.Models.NeedlessWord", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Needless");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("NeedlessWords");
                 });
 
             modelBuilder.Entity("AIService.Models.News", b =>

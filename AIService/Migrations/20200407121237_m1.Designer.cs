@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AIService.Migrations
 {
     [DbContext(typeof(DbEntity))]
-    [Migration("20200317020346_m1")]
+    [Migration("20200407121237_m1")]
     partial class m1
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -169,29 +169,6 @@ namespace AIService.Migrations
                     b.ToTable("FollowRecords");
                 });
 
-            modelBuilder.Entity("AIService.Models.Guide", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Content");
-
-                    b.Property<DateTime>("GuideTime");
-
-                    b.Property<string>("PicUrl1");
-
-                    b.Property<string>("PicUrl2");
-
-                    b.Property<string>("PicUrl3");
-
-                    b.Property<string>("Title");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Guides");
-                });
-
             modelBuilder.Entity("AIService.Models.HKSharePlate", b =>
                 {
                     b.Property<int>("Id")
@@ -224,19 +201,6 @@ namespace AIService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Knowledges");
-                });
-
-            modelBuilder.Entity("AIService.Models.NeedlessWord", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Needless");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("NeedlessWords");
                 });
 
             modelBuilder.Entity("AIService.Models.News", b =>
@@ -396,15 +360,46 @@ namespace AIService.Migrations
 
                     b.Property<string>("HistoricalText");
 
+                    b.Property<long>("KnowledgeId");
+
                     b.Property<DateTime>("SearchTime");
 
                     b.Property<long>("UserId");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("KnowledgeId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("SearchHistories");
+                });
+
+            modelBuilder.Entity("AIService.Models.SellStock", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<double>("BuyPrice");
+
+                    b.Property<double>("SellPrice");
+
+                    b.Property<int>("SellStockNumber");
+
+                    b.Property<DateTime>("SellTime");
+
+                    b.Property<long>("StockAccountId");
+
+                    b.Property<string>("StockCode");
+
+                    b.Property<string>("StockName");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StockAccountId");
+
+                    b.ToTable("SellStocks");
                 });
 
             modelBuilder.Entity("AIService.Models.SimulationStock", b =>
@@ -475,7 +470,7 @@ namespace AIService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<double>("Profit_and_Loss");
+                    b.Property<double>("Profit_or_Loss");
 
                     b.Property<long>("Rank");
 
@@ -536,6 +531,35 @@ namespace AIService.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Talks");
+                });
+
+            modelBuilder.Entity("AIService.Models.TradeHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<long>("StockAccountId");
+
+                    b.Property<string>("StockCode");
+
+                    b.Property<string>("StockName");
+
+                    b.Property<DateTime>("TradeTime");
+
+                    b.Property<int>("TransactionAmount");
+
+                    b.Property<double>("TransactionPrice");
+
+                    b.Property<int>("TransactionType");
+
+                    b.Property<double>("TransactionValue");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StockAccountId");
+
+                    b.ToTable("TradeHistories");
                 });
 
             modelBuilder.Entity("AIService.Models.User", b =>
@@ -658,9 +682,22 @@ namespace AIService.Migrations
 
             modelBuilder.Entity("AIService.Models.SearchHistory", b =>
                 {
+                    b.HasOne("AIService.Models.Knowledge", "Knowledge")
+                        .WithMany()
+                        .HasForeignKey("KnowledgeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("AIService.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("AIService.Models.SellStock", b =>
+                {
+                    b.HasOne("AIService.Models.StockAccount", "StockAccount")
+                        .WithMany()
+                        .HasForeignKey("StockAccountId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
@@ -698,6 +735,14 @@ namespace AIService.Migrations
                     b.HasOne("AIService.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("AIService.Models.TradeHistory", b =>
+                {
+                    b.HasOne("AIService.Models.StockAccount", "StockAccount")
+                        .WithMany()
+                        .HasForeignKey("StockAccountId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 

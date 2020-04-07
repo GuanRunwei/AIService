@@ -13,11 +13,11 @@ namespace AIService.Models
         public long UserId { get; set; }
         #endregion
 
-        public int Id { get; set; }
+        public int Id { get; set; }  //提问Id
         [DefaultValue(0)]
-        public int AnswerId { get; set; }
-        public string QuestionContent { get; set; }
-        public DateTime QuestionTime { get; set; }
+        public int AnswerId { get; set; }   //回答的Id
+        public string QuestionContent { get; set; }  //提问内容
+        public DateTime QuestionTime { get; set; }  //提问时间
 
     }
 }

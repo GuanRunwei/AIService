@@ -25,7 +25,7 @@ namespace AIService.Models
         public int FollowNumber { get; set; }//用户关注的用户数
         public UserType UserType { get; set; } //用户类型（0是个人用户，1是公司用户）
         //说说数量TalkNumber用Redis存储
-        public string StockAge { get { return StockAgeCalculation.Age(Id); } }
+        public string StockAge { get { return StockAgeCalculation.Age(Id); } }  //股龄
         [DefaultValue(0)]
         public int CoinNumber { get; set; }  //金币数量
 

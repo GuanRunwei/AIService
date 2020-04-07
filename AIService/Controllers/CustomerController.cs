@@ -117,7 +117,7 @@ namespace AIService.Controllers
             }
             return Json(new
             {
-                code = 200,
+                code = 400,
                 data = new ArrayList
                 {
                     new { Question="阿财没听懂，不过阿财会继续升级知识库的",Answer="" }
@@ -177,96 +177,82 @@ namespace AIService.Controllers
         [HttpGet]
         public IActionResult GetExplain(string Word, long UserId)
         {
-            List<Dictionary> dictionaries = db.Dictionaries.ToList();
-            Dictionary<Dictionary, double> results = new Dictionary<Dictionary, double>();
-            List<SearchHistory> histories = db.SearchHistories.ToList();
-            List<SearchHistory> repetitions = new List<SearchHistory>();
-            List<WordsHistory> wordsHistories = db.WordsHistories.ToList();
-            WordsHistory wordsHistory = null;
-            List<WordsHistory> repeat = new List<WordsHistory>();
-            SearchHistory searchHistory = null;
-            for (int i = 0; i < histories.Count(); i++)
-            {
-                if (GetSimilarity(Word, histories[i].HistoricalText) > 0.85)
-                    repetitions.Add(histories[i]);
-            }
-            for (int j = 0; j < wordsHistories.Count(); j++)
-            {
-                if (GetSimilarity(Word, wordsHistories[j].Word) > 0.85)
-                    repeat.Add(wordsHistories[j]);
-            }
-            if (db.SearchHistories.Where(s => s.HistoricalText == Word).Count() == 0 && db.SearchHistories.Where(s => s.HistoricalText.Contains(Word)).Count() == 0 && repetitions.Count() == 0)
-            {
-                searchHistory = new SearchHistory();
-                searchHistory.SearchTime = DateTime.Now;
-                searchHistory.HistoricalText = Word;
-                searchHistory.UserId = UserId;
-                searchHistory.User = db.Users.FirstOrDefault(s => s.Id == UserId);
-            }
-            if (db.WordsHistories.Where(s => s.Word.Equals(Word)).Count() == 0 && db.WordsHistories.Where(s => s.Word.Contains(Word)).Count() == 0 && repeat.Count() == 0)
-            {
-                wordsHistory = new WordsHistory();
-            }
-            for (int i = 0; i < dictionaries.Count(); i++)
-            {
-                if (GetSimilarity(Word, dictionaries[i].Word) > 0.65)
+            IList<Dictionary> dictionaries = db.Dictionaries.ToList();
+            IList<WordsHistory> wordsHistories = db.WordsHistories.ToList();
+            WordsHistory wordsHistory = new WordsHistory();
+            Dictionary<string, string> first_result = new Dictionary<string, string>();
+            Dictionary<string, string> second_result = new Dictionary<string, string>();
+            foreach (var item in dictionaries)
+            {                
+                if (GetSimilarity(item.Word, Word) > 0.85)
                 {
-                    results.Add(dictionaries[i], GetSimilarity(Word, dictionaries[i].Word));
+                    first_result.Add(item.Word, item.Explain);
+                    if(wordsHistories.Where(s=>s.Word==item.Word).Count()==0)
+                    {
+                        wordsHistory.UserId = UserId;
+                        wordsHistory.Word = item.Word;
+                        wordsHistory.Explain = item.Explain;
+                        wordsHistory.SearchTime = DateTime.Now;
+                        db.WordsHistories.Add(wordsHistory);
+                        db.SaveChanges();
+                    }                    
+                    break;
+                }
+                if (GetSimilarity(item.Word, Word) > 0.6)
+                {
+                    second_result.Add(item.Word, item.Explain);
+                    if (wordsHistories.Where(s => s.Word == item.Word).Count() == 0)
+                    {
+                        wordsHistory.UserId = UserId;
+                        wordsHistory.Word = item.Word;
+                        wordsHistory.Explain = item.Explain;
+                        wordsHistory.SearchTime = DateTime.Now;
+                        db.WordsHistories.Add(wordsHistory);
+                        db.SaveChanges();
+                    }                   
                 }
             }
-            Dictionary<Dictionary, double> list = results.OrderByDescending(s => s.Value).ToDictionary(s => s.Key, s => s.Value);
-            if (list.Count() > 0)
+
+            if (first_result.Count > 0)
             {
-                if (searchHistory != null)
+                if (wordsHistories.Where(s => s.Word == first_result.First().Key).Count() > 0)
                 {
-                    searchHistory.Answer = list.First().Key.Explain;
-                    db.SearchHistories.Add(searchHistory);
-                    db.SaveChanges();
-                }
-                if (wordsHistory != null)
-                {
-                    wordsHistory.UserId = UserId;
-                    wordsHistory.Explain = list.First().Key.Explain;
-                    wordsHistory.Word = list.First().Key.Word;
+                    wordsHistory = wordsHistories.Where(s => s.Word == first_result.First().Key).FirstOrDefault();
                     wordsHistory.SearchTime = DateTime.Now;
-                    db.WordsHistories.Add(wordsHistory);
+                    db.Entry(wordsHistory).State = EntityState.Modified;
                     db.SaveChanges();
                 }
-                if (list.First().Value == 1)
-                {
                     return Json(new
-                    {
-                        data = list.Take(1).Select(s => new
-                        {
-                            s.Key.Word,
-                            s.Key.Explain
-                        })
-                    });
-                }
-                else if (list.Count() > 2)
                 {
-                    return Json(new
-                    {
-                        data = list.Take(3).Select(s => new
-                        {
-                            s.Key.Word,
-                            s.Key.Explain
-                        })
-                    });
-                }
-                else if (list.Count() <= 2 && list.Count() > 0)
-                {
-                    return Json(new
-                    {
-                        data = list.Select(s => new
-                        {
-                            s.Key.Word,
-                            s.Key.Explain
-                        })
-                    });
-                }
+                    code = 200,
+                    Word = first_result.First().Key,
+                    Explain = first_result.First().Value,
+                });
             }
-            return Json(new { });
+                
+            if (second_result.Count > 0)
+            {
+                if (wordsHistories.Where(s => s.Word == second_result.First().Key).Count() > 0)
+                {
+                    wordsHistory = wordsHistories.Where(s => s.Word == second_result.First().Key).FirstOrDefault();
+                    wordsHistory.SearchTime = DateTime.Now;
+                    db.Entry(wordsHistory).State = EntityState.Modified;
+                    db.SaveChanges();
+                }
+                return Json(new
+                {
+                    code = 200,
+                    Word = second_result.First().Key,
+                    Explain = second_result.First().Value,
+                });
+            }
+                
+            return Json(new
+            {
+                code = 400,
+                data = "啥也没有"
+            });
+
         }
         #endregion       
 
@@ -397,42 +383,38 @@ namespace AIService.Controllers
 
         #region 跳出用户可能会需要查找的名词解释
         [HttpGet]
-        public IActionResult GetPossibleWords(long UserId)
+        public IActionResult GetPossibleWords()
         {
-            List<SearchHistory> searchHistories = db.SearchHistories.Where(s => s.UserId == UserId).OrderByDescending(s => s.SearchTime).ToList();
-            List<SearchHistory> results = new List<SearchHistory>();
-            Dictionary<string, string> pairs = new Dictionary<string, string>();
-            if (searchHistories.Count() > 3)
+            IList<Knowledge> knowledges = db.Knowledges.ToList();
+            Dictionary<int, Knowledge> result = new Dictionary<int, Knowledge>();
+            List<Knowledge> final_result = new List<Knowledge>();
+            Random random = new Random();
+            int[] number_result = new int[5];
+            int count = 0;
+            for(int i=1;i< knowledges.Count;i++)
             {
-                results.Add(searchHistories[0]);
-                results.Add(searchHistories[1]);
-                results.Add(searchHistories[2]);
-                return Json(new
-                {
-                    data = results.Select(s => new
-                    {
-                        s.HistoricalText,
-                        s.Answer
-                    })
-                });
-
+                result.Add(i, knowledges[i]);
             }
-            if (searchHistories.Count() < 4 && searchHistories.Count() > 0)
+            Console.WriteLine(result.Count);
+            while(number_result[4]==0)
             {
-                for (int i = 0; i < searchHistories.Count(); i++)
+                int i = random.Next(1, result.Count);
+                if (!number_result.Contains(i))
                 {
-                    results.Add(searchHistories[i]);
+                    number_result[count] = i;
+                    count++;
                 }
-                return Json(new
-                {
-                    data = results.Select(s => new
-                    {
-                        s.HistoricalText,
-                        s.Answer
-                    })
-                });
             }
-            return Json(new { });
+            for(int i=0;i<number_result.Length;i++)
+            {
+                final_result.Add(result[number_result[i]]);
+            }
+            return Json(new 
+            {
+                code = 200,
+                data = final_result.Select(s=>new { s.Id, s.Question, s.Answer})
+            });
+            
         }
         #endregion
 
@@ -453,7 +435,7 @@ namespace AIService.Controllers
                 });
             return Json(new
             {
-                data = dictionaries.Select(s => new
+                data = wordsHistories.Select(s => new
                 {
                     s.Word,
                     s.Explain

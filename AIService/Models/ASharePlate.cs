@@ -10,7 +10,7 @@ namespace AIService.Models
     {
         
         public int Id { get; set; }
-        public int ParentId { get; set; }
-        public string PlateName { get; set; }
+        public int ParentId { get; set; }  //父级Id
+        public string PlateName { get; set; }  //板块名称
     }
 }

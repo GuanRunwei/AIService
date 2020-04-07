@@ -13,13 +13,13 @@ namespace AIService.Models
         #endregion
         public long Id { get; set; }
         public long UserId { get; set; }
-        public string StockCode { get; set; }
-        public string StockName { get; set; }
-        public string StockPinyin { get; set; }
-        public string StockValue { get; set; }
-        public StockType StockType { get; set; }
-        public StockExchange StockExchange { get; set; }
-        public StockTendency StockTendency { get; set; }
+        public string StockCode { get; set; }  //股票代码
+        public string StockName { get; set; }  //股票名称
+        public string StockPinyin { get; set; }  //股票拼音
+        public string StockValue { get; set; }  //股票市值
+        public StockType StockType { get; set; }  //股票类型（A股0 B股1 港股2）
+        public StockExchange StockExchange { get; set; }  //股票交易所
+        public StockTendency StockTendency { get; set; }  //股票趋势
         public string NowPrice { get; set; } //最新
         public string Diff_Rate { get; set; } //涨跌幅
         public string Diff_Money { get; set; } //涨跌金额
