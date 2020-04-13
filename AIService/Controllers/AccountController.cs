@@ -79,7 +79,7 @@ namespace AIService.Controllers
             }
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", StockCode)
                     .addTextPara("needIndex", "0")
                     .post();
@@ -178,7 +178,7 @@ namespace AIService.Controllers
                                 request_string.Append(stockCodes[i] + ",");
                             }
                         }
-                        string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                        string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                             .addTextPara("stocks", request_string.ToString())
                             .addTextPara("needIndex", "0")
                             .post();
@@ -310,7 +310,7 @@ namespace AIService.Controllers
                             request_string.Append(stockCodes[i] + ",");
                         }
                     }
-                    string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                    string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                         .addTextPara("stocks", request_string.ToString())
                         .addTextPara("needIndex", "0")
                         .post();
@@ -423,7 +423,7 @@ namespace AIService.Controllers
                         request_string.Append(stockCodes[i] + ",");
                     }
                 }
-                string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", request_string.ToString())
                     .addTextPara("needIndex", "0")
                     .post();
@@ -438,26 +438,21 @@ namespace AIService.Controllers
                         {
                             simulationStocks[i].NowPrice = Double.Parse(stockList[j]["nowPrice"].ToString());
                             StockValue += Double.Parse(stockList[j]["nowPrice"].ToString()) * simulationStocks[i].StockNumber;
-                            Today_Profit_or_Loss += (Double.Parse(stockList[j]["nowPrice"].ToString()) - simulationStocks[i].BuyPrice) * simulationStocks[i].StockNumber;
+                            Today_Profit_or_Loss += (simulationStocks[i].NowPrice - simulationStocks[i].BuyPrice) * simulationStocks[i].StockNumber;
                             db.Entry(simulationStocks[i]).State = EntityState.Modified;
                             db.SaveChanges();
                             
                         }
-                        Thread.Sleep(1);
                     }
                 }
                 
                 Thread.Sleep(1);
                 try
                 {
-                    stockAccount.SumMoney += Today_Profit_or_Loss;                   
+                    stockAccount.SumMoney = StockValue + stockAccount.ValidMoney;                   
                     stockAccount.SumStockValue = StockValue;
-                    stockAccount.Profit_or_Loss = ProfitandLossCalculation(UserId: UserId);
+                    stockAccount.Profit_or_Loss = Today_Profit_or_Loss;
                     stockAccount.Rank = RankCalculation(UserId: UserId);
-                    db.Entry(stockAccount).State = EntityState.Modified;
-                    db.SaveChanges();
-                    Thread.Sleep(1);
-                    stockAccount.ValidMoney = stockAccount.SumMoney - StockValue;
                     db.Entry(stockAccount).State = EntityState.Modified;
                     db.SaveChanges();
                     Thread.Sleep(1);
@@ -520,7 +515,7 @@ namespace AIService.Controllers
             }
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", StockCode)
                     .addTextPara("needIndex", "0")
                     .post();
@@ -572,7 +567,7 @@ namespace AIService.Controllers
 
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", simulationStock.StockCode)
                     .addTextPara("needIndex", "0")
                     .post();

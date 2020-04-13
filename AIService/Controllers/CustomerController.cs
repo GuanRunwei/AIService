@@ -4,10 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AIService.Helper;
+using AIService.Helper.StockApiHelper.show.api;
 using AIService.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 
 namespace AIService.Controllers
@@ -115,13 +118,44 @@ namespace AIService.Controllers
                     });
                 }
             }
+            String res = new ShowApiRequest("http://route.showapi.com/60-27", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                         .addTextPara("info", Question)
+                         .addTextPara("userid", "userid")
+                         .post();
+            JObject Tuling_result = JsonConvert.DeserializeObject<JObject>(res);
+            try
+            {
+                if(Tuling_result["showapi_res_body"]["code"].ToString() == "200000")
+                {
+                    string resultAnswer = Tuling_result["showapi_res_body"]["text"].ToString() + ": " + Tuling_result["showapi_res_body"]["url"];
+                    resultAnswer = resultAnswer.Contains("图灵机器人") ? resultAnswer.Replace("图灵机器人", "炒股达人阿财") : resultAnswer;
+                    return Json(new 
+                    {
+                        code = 400,
+                        data = resultAnswer
+                    });
+                }
+                if (Tuling_result["showapi_res_body"]["code"].ToString() == "100000")
+                {
+                    return Json(new
+                    {
+                        code = 400,
+                        data = Tuling_result["showapi_res_body"]["text"].ToString().Contains("图灵机器人") ? Tuling_result["showapi_res_body"]["text"].ToString().Replace("图灵机器人", "炒股达人阿财") : Tuling_result["showapi_res_body"]["text"].ToString()
+                });
+                }
+            }
+            catch(Exception ex)
+            {
+                return Json(new
+                {
+                    code = 400,
+                    data = "糟糕，网路好像出问题了"
+                });
+            }
             return Json(new
             {
                 code = 400,
-                data = new ArrayList
-                {
-                    new { Question="阿财没听懂，不过阿财会继续升级知识库的",Answer="" }
-                }
+                data = "阿财没听懂，不过阿财会继续升级知识库的!"
             });
         }
         #endregion

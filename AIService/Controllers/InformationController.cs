@@ -146,7 +146,9 @@ namespace AIService.Controllers
                 NewsCommentsData = newsComments.Select(s=>new 
                 {
                     s.Id,
+                    UserId = s.UserId,
                     Commenter = db.Users.FirstOrDefault(u=>u.Id==s.UserId).Username,
+                    ImageUrl = db.Users.FirstOrDefault(u => u.Id == s.UserId).ImageUrl,
                     StockAge = "股龄" + db.Users.FirstOrDefault(t=>t.Id==s.UserId).StockAge,
                     CommentTime = ParamHelper.TalkTimeConvert(s.CommentTime),
                     s.Point,
@@ -154,6 +156,68 @@ namespace AIService.Controllers
                     Comment_PraiseNumber = redisDatabase.StringGet("NewsCommentId=" + s.Id.ToString() + "&PraiseNumber")
                 }),
                 KeywordsData = keywords
+            });
+        }
+        #endregion
+
+        #region 新闻评论按热度排序
+        [HttpGet]
+        public IActionResult GetHotNewsComments(long NewsId, long UserId)
+        {
+            IDatabase redisDatabase = RedisHelper.Value.Database;
+            List<NewsComment> newsComments = db.NewsComments.Where(s => s.NewsId == NewsId).ToList();
+            Dictionary<NewsComment, string> result = new Dictionary<NewsComment, string>();
+            foreach(var item in newsComments)
+            {
+                string Comment_PraiseNumber = redisDatabase.StringGet("NewsCommentId=" + item.Id.ToString() + "&PraiseNumber");
+                result.Add(item, Comment_PraiseNumber);
+            }
+            return Json(new 
+            {
+                code = 200,
+                data = result.OrderByDescending(s=>s.Value).OrderByDescending(s=>s.Key.CommentTime).Select(s=>new 
+                { 
+                    s.Key.Id,
+                    s.Key.UserId,
+                    Commenter = db.Users.FirstOrDefault(u => u.Id == s.Key.UserId).Username,
+                    ImageUrl = db.Users.FirstOrDefault(u => u.Id == s.Key.UserId).ImageUrl,
+                    StockAge = "股龄" + db.Users.FirstOrDefault(t => t.Id == s.Key.UserId).StockAge,
+                    CommentTime = ParamHelper.TalkTimeConvert(s.Key.CommentTime),
+                    s.Key.Point,
+                    Comment_If_Praise = redisDatabase.KeyExists("NewsCommentId=" + s.Key.Id.ToString() + "&UserId=" + UserId.ToString()).ToString(),
+                    Comment_PraiseNumber = redisDatabase.StringGet("NewsCommentId=" + s.Key.Id.ToString() + "&PraiseNumber")
+                })
+            });
+        }
+        #endregion
+
+        #region 新闻评论按热度排序
+        [HttpGet]
+        public IActionResult GetTimeNewsComments(long NewsId, long UserId)
+        {
+            IDatabase redisDatabase = RedisHelper.Value.Database;
+            List<NewsComment> newsComments = db.NewsComments.Where(s => s.NewsId == NewsId).ToList();
+            Dictionary<NewsComment, string> result = new Dictionary<NewsComment, string>();
+            foreach (var item in newsComments)
+            {
+                string Comment_PraiseNumber = redisDatabase.StringGet("NewsCommentId=" + item.Id.ToString() + "&PraiseNumber");
+                result.Add(item, Comment_PraiseNumber);
+            }
+            return Json(new
+            {
+                code = 200,
+                data = result.OrderByDescending(s => s.Key.CommentTime).Select(s => new
+                {
+                    s.Key.Id,
+                    s.Key.UserId,
+                    Commenter = db.Users.FirstOrDefault(u => u.Id == s.Key.UserId).Username,
+                    ImageUrl = db.Users.FirstOrDefault(u => u.Id == s.Key.UserId).ImageUrl,
+                    StockAge = "股龄" + db.Users.FirstOrDefault(t => t.Id == s.Key.UserId).StockAge,
+                    CommentTime = ParamHelper.TalkTimeConvert(s.Key.CommentTime),
+                    s.Key.Point,
+                    Comment_If_Praise = redisDatabase.KeyExists("NewsCommentId=" + s.Key.Id.ToString() + "&UserId=" + UserId.ToString()).ToString(),
+                    Comment_PraiseNumber = redisDatabase.StringGet("NewsCommentId=" + s.Key.Id.ToString() + "&PraiseNumber")
+                })
             });
         }
         #endregion

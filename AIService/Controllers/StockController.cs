@@ -45,7 +45,7 @@ namespace AIService.Controllers
             Dictionary<string, string[]> result = new Dictionary<string, string[]>();
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-45", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-45", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                 .addTextPara("stocks", "000001,000002,000003,000004,000005,000006,000007,000008,399001,399006")
                 .post();
                 JObject jObject = JsonConvert.DeserializeObject<JObject>(res);
@@ -131,6 +131,84 @@ namespace AIService.Controllers
         }
         #endregion
 
+        #region A股沪深 左上角
+        [HttpGet]
+        public IActionResult GetAShareStatus()
+        {
+            Dictionary<string, string> day_in_weekand = new Dictionary<string, string>
+            {
+                { "Sunday", "星期日" },
+                { "Saturday", "星期六"},
+                { "Friday", "星期五"},
+                { "Thursday", "星期四"},
+                { "Wednesday", "星期三"},
+                { "Tuesday", "星期二"},
+                { "Monday", "星期一"}
+            };
+            if (ParamHelper.IsHolidayByDate(DateTime.Today.Date).Result == true)
+                return Json(new 
+                {
+                    code = 200,
+                    status = "节假日休盘",
+                    date = "以下为上一个交易日的数据"
+                });
+            else
+            {
+                if (DateTime.Now.Hour >= 0 && DateTime.Now.Hour < 9)
+                    return Json(new 
+                    {
+                        code = 200,
+                        status = "未开盘",
+                        date = DateTime.Today.ToString("yyyy-MM-dd ") + day_in_weekand.GetValueOrDefault(DateTime.Today.DayOfWeek.ToString())
+                    });
+                if(DateTime.Now.Hour == 9 && DateTime.Now.Minute >= 0 && DateTime.Now.Minute < 15)
+                    return Json(new
+                    {
+                        code = 200,
+                        status = "未开盘",
+                        date = "9:15开始集合竞价"
+                    });
+                if (DateTime.Now.Hour == 9 && DateTime.Now.Minute >= 15 && DateTime.Now.Minute < 30)
+                    return Json(new
+                    {
+                        code = 200,
+                        status = "集合竞价中",
+                        date = "9:30开始正式交易"
+                    });
+                if (DateTime.Parse(DateTime.Now.ToLongTimeString()) <= DateTime.Parse("11:30") && DateTime.Parse(DateTime.Now.ToLongTimeString()) >= DateTime.Parse("9:30"))
+                    return Json(new
+                    {
+                        code = 200,
+                        status = "开盘中",
+                        date = DateTime.Today.ToString("yyyy-MM-dd ") + day_in_weekand.GetValueOrDefault(DateTime.Today.DayOfWeek.ToString())
+                    });
+                if (DateTime.Parse(DateTime.Now.ToLongTimeString()) < DateTime.Parse("13:00") && DateTime.Parse(DateTime.Now.ToLongTimeString()) > DateTime.Parse("11:30"))
+                    return Json(new
+                    {
+                        code = 200,
+                        status = "休市中",
+                        date = DateTime.Today.ToString("yyyy-MM-dd ") + day_in_weekand.GetValueOrDefault(DateTime.Today.DayOfWeek.ToString())
+                    });
+                if (DateTime.Parse(DateTime.Now.ToLongTimeString()) >= DateTime.Parse("13:00") && DateTime.Parse(DateTime.Now.ToLongTimeString()) <= DateTime.Parse("15:00"))
+                    return Json(new
+                    {
+                        code = 200,
+                        status = "开盘中",
+                        date = DateTime.Today.ToString("yyyy-MM-dd ") + day_in_weekand.GetValueOrDefault(DateTime.Today.DayOfWeek.ToString())
+                    });
+                if (DateTime.Parse(DateTime.Now.ToLongTimeString()) > DateTime.Parse("15:00") && DateTime.Parse(DateTime.Now.ToLongTimeString()) <= DateTime.Parse("23:59:59"))
+                    return Json(new
+                    {
+                        code = 200,
+                        status = "已收盘",
+                        date = DateTime.Today.ToString("yyyy-MM-dd ") + day_in_weekand.GetValueOrDefault(DateTime.Today.DayOfWeek.ToString())
+                    });
+
+            }
+            return Json(new{ });
+        }
+        #endregion
+
         #region A股 股票排行
         [HttpGet]
         public IActionResult GetStocksRankingBrief(string SortField, int SortType, int Page)
@@ -140,7 +218,7 @@ namespace AIService.Controllers
             Dictionary<string, string[]> result = new Dictionary<string, string[]>();
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-64", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-64", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("sortFeild", SortField)
                     .addTextPara("sortType", SortType.ToString())
                     .addTextPara("page", Page.ToString())
@@ -151,7 +229,11 @@ namespace AIService.Controllers
                 {
                     string StockCode = jArray[i]["code"].ToString();
                     string NewestPrice = jArray[i]["nowPrice"].ToString();
-                    string SortEvidence = jArray[i][SortField].ToString();
+                    string SortEvidence;
+                    if (SortField == "tradeAmount" || SortField == "tradeNum")
+                        SortEvidence = ParamHelper.ConvertNumber(Double.Parse(jArray[i][SortField].ToString()));
+                    else
+                        SortEvidence = jArray[i][SortField].ToString();
                     string StockName = jArray[i]["name"].ToString();
                     string StockIndustry = null;
                     Stock tempStock = db.Stocks.FirstOrDefault(s => s.StockCode == StockCode);
@@ -162,7 +244,7 @@ namespace AIService.Controllers
                         newStock.StockCode = StockCode;
                         newStock.StockName = StockName;
                         newStock.StockType = Enums.StockType.A股;
-                        string tempResult = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                        string tempResult = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", StockCode)
                     .addTextPara("needIndex", "0")
                     .post();
@@ -371,10 +453,10 @@ namespace AIService.Controllers
             OptionalStock optionalStock = new OptionalStock();
             try
             {
-                string res1 = new ShowApiRequest("http://route.showapi.com/131-43", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res1 = new ShowApiRequest("http://route.showapi.com/131-43", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                             .addTextPara("code", Code)
                             .post();
-                string res2 = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res2 = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", Code)
                     .addTextPara("needIndex", "0")
                     .post();
@@ -486,7 +568,7 @@ namespace AIService.Controllers
             Dictionary<string, string[]> result = new Dictionary<string, string[]>();
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-45", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-45", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                 .addTextPara("stocks", "sh000001,sz399001,sz399005,sz399006,hkhsi")
                 .post();
                 JObject jObject = JsonConvert.DeserializeObject<JObject>(res);
@@ -545,7 +627,7 @@ namespace AIService.Controllers
             }
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", stocks.ToString())
                     .addTextPara("needIndex", "0")
                     .post();
@@ -639,7 +721,7 @@ namespace AIService.Controllers
             Dictionary<string, string[]> result = new Dictionary<string, string[]>();
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-45", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-45", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", "hkhsi,hscei,hscci")
                     .post();
                 jObject = JsonConvert.DeserializeObject<JObject>(res);
@@ -815,7 +897,7 @@ namespace AIService.Controllers
             try
             {
                 string Datetime_String = DateTime.Now.ToString("yyyyMMdd");
-                string res = new ShowApiRequest("http://route.showapi.com/131-57", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-57", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                 .addTextPara("date", Datetime_String)
                 .post();
                 jObject = JsonConvert.DeserializeObject<JObject>(res);
@@ -980,7 +1062,7 @@ namespace AIService.Controllers
             }
             try
             {
-                string res = new ShowApiRequest("http://route.showapi.com/131-46", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                string res = new ShowApiRequest("http://route.showapi.com/131-46", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("stocks", StockCode)
                     .addTextPara("needIndex", "0")
                     .post();
@@ -1082,45 +1164,142 @@ namespace AIService.Controllers
         }
         #endregion
 
-        #region 单只股指实时行情
+        #region 上证综指详细信息
         [HttpGet]
-        public IActionResult GetOneMarketIndexQuotation(string Code, string Time, string BeginDate)
+        public IActionResult GetShangZheng()
         {
-            string res = null;
-            JObject jObject, result = null;
+            JObject jObject = null;
             try
             {
-                if (Time == null && BeginDate == null)
+                string res = new ShowApiRequest("http://route.showapi.com/131-45", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                                 .addTextPara("stocks", "sh000001")
+                                 .post();
+                JObject temp = JsonConvert.DeserializeObject<JObject>(res);
+                jObject = JObject.Parse(temp["showapi_res_body"]["indexList"].First.ToString());
+                jObject["tradeNum"] = ParamHelper.ConvertNumber(Double.Parse(jObject["tradeNum"].ToString()));
+                jObject["tradeAmount"] = ParamHelper.ConvertNumber(Double.Parse(jObject["tradeAmount"].ToString()));
+                jObject["time"] = jObject["time"].ToString().Substring(11, 5);
+                jObject["diff_rate"] = jObject["diff_rate"].ToString() + "%";
+            }
+            catch(Exception ex)
+            {
+                return Json(new 
                 {
-                    res = new ShowApiRequest("http://route.showapi.com/131-52", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                    code = 400,
+                    data = "糟糕，网络好像出问题了"
+                });
+            }
+            return Json(new
+            {
+                code = 200,
+                data = jObject
+            });
+        }
+        #endregion
+
+        #region 深证成指详细信息
+        [HttpGet]
+        public IActionResult GetShenZheng()
+        {
+            JObject jObject = null;
+            try
+            {
+                string res = new ShowApiRequest("http://route.showapi.com/131-45", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                                 .addTextPara("stocks", "sz399001")
+                                 .post();
+                JObject temp = JsonConvert.DeserializeObject<JObject>(res);
+                jObject = JObject.Parse(temp["showapi_res_body"]["indexList"].First.ToString());
+                jObject["tradeNum"] = ParamHelper.ConvertNumber(Double.Parse(jObject["tradeNum"].ToString()));
+                jObject["tradeAmount"] = ParamHelper.ConvertNumber(Double.Parse(jObject["tradeAmount"].ToString()));
+                jObject["time"] = jObject["time"].ToString().Substring(11, 5);
+                jObject["diff_rate"] = jObject["diff_rate"].ToString() + "%";
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    code = 400,
+                    data = "糟糕，网络好像出问题了"
+                });
+            }
+            return Json(new
+            {
+                code = 200,
+                data = jObject
+            });
+        }
+        #endregion
+
+        #region 创业板指详细信息
+        [HttpGet]
+        public IActionResult GetChuangYe()
+        {
+            JObject jObject = null;
+            try
+            {
+                string res = new ShowApiRequest("http://route.showapi.com/131-45", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                                 .addTextPara("stocks", "sz399006")
+                                 .post();
+                JObject temp = JsonConvert.DeserializeObject<JObject>(res);
+                jObject = JObject.Parse(temp["showapi_res_body"]["indexList"].First.ToString());
+                jObject["tradeNum"] = ParamHelper.ConvertNumber(Double.Parse(jObject["tradeNum"].ToString()));
+                jObject["tradeAmount"] = ParamHelper.ConvertNumber(Double.Parse(jObject["tradeAmount"].ToString()));
+                jObject["time"] = jObject["time"].ToString().Substring(11, 5);
+                jObject["diff_rate"] = jObject["diff_rate"].ToString() + "%";
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    code = 400,
+                    data = "糟糕，网络好像出问题了"
+                });
+            }
+            return Json(new
+            {
+                code = 200,
+                data = jObject
+            });
+        }
+        #endregion
+
+        #region 单只股指实时行情
+        [HttpGet]
+        public IActionResult GetOneMarketIndexQuotation(string Code)
+        {
+            string res = null;
+            JObject jObject = null;
+            JArray result = null;
+            try
+            {
+                if (ParamHelper.IsHolidayByDate(DateTime.Today.Date).Result == false)
+                {
+                    res = new ShowApiRequest("http://route.showapi.com/131-52", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("code", Code)
                     .post();
                 }
-                if (Time != null && BeginDate == null)
+                else
                 {
-                    res = new ShowApiRequest("http://route.showapi.com/131-52", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                    DateTime yesterday = DateTime.Today.AddDays(-1);
+                    while (ParamHelper.IsHolidayByDate(yesterday).Result == true)
+                    {
+                        yesterday = yesterday.AddDays(-1);
+                    }
+                    string timeString = yesterday.ToString("yyyyMMdd");
+                    res = new ShowApiRequest("http://route.showapi.com/131-52", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("code", Code)
-                    .addTextPara("time", Time)
-                    .post();
-                }
-                if (Time == null && BeginDate != null)
-                {
-                    res = new ShowApiRequest("http://route.showapi.com/131-52", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
-                    .addTextPara("code", Code)
-                    .addTextPara("beginDay", BeginDate)
-                    .post();
-                }
-                if (Time != null && BeginDate != null)
-                {
-                    res = new ShowApiRequest("http://route.showapi.com/131-52", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
-                    .addTextPara("code", Code)
-                    .addTextPara("time", Time)
-                    .addTextPara("beginDay", BeginDate)
+                    .addTextPara("beginDay", timeString)
                     .post();
                 }
 
+
                 jObject = JsonConvert.DeserializeObject<JObject>(res);
-                result = JObject.Parse(jObject["showapi_res_body"].ToString());
+                result = JArray.Parse(jObject["showapi_res_body"]["dataList"].ToString());
+                result = new JArray(result.OrderBy(s => s["time"]));
+                foreach(var item in result)
+                {
+                    item["time"] = item["time"].ToString().Substring(8, 2) + ":" + item["time"].ToString().Substring(10, 2);
+                }
             }
 #pragma warning disable CS0168 // 声明了变量“ex”，但从未使用过
             catch (Exception ex)
@@ -1135,6 +1314,8 @@ namespace AIService.Controllers
             return Json(new
             {
                 code = 200,
+                y_min = Math.Floor(Double.Parse(result.OrderBy(s => s["open"]).First()["open"].ToString()) - Double.Parse(result.OrderBy(s => s["open"]).First()["open"].ToString()) * 0.05),
+                y_max = Math.Ceiling(Double.Parse(result.OrderByDescending(s => s["open"]).First()["open"].ToString()) + Double.Parse(result.OrderBy(s => s["open"]).First()["open"].ToString()) * 0.05),
                 data = result
             });
         }
@@ -1142,12 +1323,13 @@ namespace AIService.Controllers
 
         #region 单只股票实时行情
         [HttpGet]
-        public IActionResult GetOneStockRealtimeQuotation(string NameorCode, string Time, string BeginDate)
+        public IActionResult GetOneStockRealtimeQuotation(string NameorCode)
         {
             ParamHelper paramHelper = new ParamHelper();
             string res = null;
             string StockCode = NameorCode;
-            JObject jObject, result = null;
+            JObject jObject = null;
+            JArray result = null;
             if (paramHelper.HaveHanZi(NameorCode))
             {
                 Stock tempStock = db.Stocks.FirstOrDefault(s => s.StockName == NameorCode || s.StockName.Equals(NameorCode));
@@ -1161,37 +1343,34 @@ namespace AIService.Controllers
             }
             try
             {
-                if (Time == null && BeginDate == null)
+                if (ParamHelper.IsHolidayByDate(DateTime.Today.Date).Result == false)
                 {
-                    res = new ShowApiRequest("http://route.showapi.com/131-50", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                    res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("code", StockCode)
                     .post();
                 }
-                if (Time != null && BeginDate == null)
+                else
                 {
-                    res = new ShowApiRequest("http://route.showapi.com/131-50", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
+                    DateTime yesterday = DateTime.Today.AddDays(-1);
+                    while(ParamHelper.IsHolidayByDate(yesterday).Result == true)
+                    {
+                        yesterday = yesterday.AddDays(-1);
+                    }
+                    string timeString = yesterday.ToString("yyyyMMdd");
+                    res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("code", StockCode)
-                    .addTextPara("time", Time)
+                    .addTextPara("beginDay",timeString)
                     .post();
                 }
-                if (Time == null && BeginDate != null)
-                {
-                    res = new ShowApiRequest("http://route.showapi.com/131-50", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
-                    .addTextPara("code", StockCode)
-                    .addTextPara("beginDay", BeginDate)
-                    .post();
-                }
-                if (Time != null && BeginDate != null)
-                {
-                    res = new ShowApiRequest("http://route.showapi.com/131-50", "166593", "8aaf1b7ff66b4662b3a89c8147001743")
-                    .addTextPara("code", StockCode)
-                    .addTextPara("time", Time)
-                    .addTextPara("beginDay", BeginDate)
-                    .post();
-                }
+                
 
                 jObject = JsonConvert.DeserializeObject<JObject>(res);
-                result = JObject.Parse(jObject["showapi_res_body"].ToString());
+                result = JArray.Parse(jObject["showapi_res_body"]["dataList"].ToString());
+                result = new JArray(result.OrderBy(s => s["time"]));
+                foreach (var item in result)
+                {
+                    item["time"] = item["time"].ToString().Substring(8, 2) + ":" + item["time"].ToString().Substring(10, 2);
+                }
             }
 #pragma warning disable CS0168 // 声明了变量“ex”，但从未使用过
             catch (Exception ex)
@@ -1206,6 +1385,8 @@ namespace AIService.Controllers
             return Json(new
             {
                 code = 200,
+                y_min = Math.Floor(Double.Parse(result.OrderBy(s => s["open"]).First()["open"].ToString()) - Double.Parse(result.OrderBy(s => s["open"]).First()["open"].ToString()) * 0.05),
+                y_max = Math.Ceiling(Double.Parse(result.OrderByDescending(s => s["open"]).First()["open"].ToString()) + Double.Parse(result.OrderBy(s => s["open"]).First()["open"].ToString()) * 0.05),
                 data = result
             });
         }

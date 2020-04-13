@@ -566,6 +566,29 @@ namespace AIService.Controllers
         }
         #endregion
 
+        #region 修改密码
+        [HttpPost]
+        public HttpResponseMessage ChangePassword(long UserId, string OldPassword, string NewPassword)
+        {
+            User user = db.Users.FirstOrDefault(s => s.Id == UserId);
+            if (SecurityHelper.MD5Hash(OldPassword) != user.Password)
+                return ApiResponse.BadRequest("原密码不正确");
+            user.Password = SecurityHelper.MD5Hash(NewPassword);
+            try
+            {
+                db.Entry(user).State = EntityState.Modified;
+                db.SaveChanges();
+            }
+            catch(Exception ex)
+            {
+                db.Entry(user).State = EntityState.Unchanged;
+                return ApiResponse.BadRequest("网络异常");
+            }
+            return ApiResponse.Ok("修改成功");
+
+        }
+        #endregion
+
         #region 问答
 
         #region 提问
@@ -617,6 +640,9 @@ namespace AIService.Controllers
         [HttpPost]
         public HttpResponseMessage SendAnswer(int QuestionId, long UserId, string AnswerContent)
         {
+            User answerUser = db.Users.FirstOrDefault(s => s.Id == UserId);
+            if (DateTime.Today.Subtract(answerUser.CreateTime.Date).Days < 60)
+                return ApiResponse.BadRequest("股龄大于60天才能使用此功能");
             Question question = db.Questions.FirstOrDefault(s => s.Id == QuestionId);
             SensitiveWordInterceptor sensitiveWordInterceptor = new SensitiveWordInterceptor();
             if (question.UserId == UserId)

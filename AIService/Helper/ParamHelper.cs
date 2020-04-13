@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace AIService.Helper
@@ -55,20 +56,28 @@ namespace AIService.Helper
 
         public static string ConvertNumber(Double money)
         {
-            if (money > 0)
+            try
             {
-                if (money.ToString().Length >= 9)
-                    return (Math.Round(money / 100000000, 2)).ToString() + "亿";
-                if (money.ToString().Length > 4 && money.ToString().Length < 9)
-                    return (Math.Round(money / 10000, 2)).ToString() + "万";
+                if (money > 0)
+                {
+                    if (money.ToString().Length >= 9)
+                        return (Math.Round(money / 100000000, 2)).ToString() + "亿";
+                    if (money.ToString().Length > 4 && money.ToString().Length < 9)
+                        return (Math.Round(money / 10000, 2)).ToString() + "万";
+                }
+                if (money < 0)
+                {
+                    if (money.ToString().Substring(1).Length >= 9)
+                        return "-" + (Math.Round(Math.Abs(money) / 100000000, 2)).ToString() + "亿";
+                    if (money.ToString().Substring(1).Length > 4 && money.ToString().Length < 9)
+                        return "-" + (Math.Round(Math.Abs(money) / 10000, 2)).ToString() + "万";
+                }
             }
-            if (money < 0)
+            catch(Exception ex)
             {
-                if (money.ToString().Substring(1).Length >= 9)
-                    return "-" + (Math.Round(Math.Abs(money) / 100000000, 2)).ToString() + "亿";
-                if (money.ToString().Substring(1).Length > 4 && money.ToString().Length < 9)
-                    return "-" + (Math.Round(Math.Abs(money) / 10000, 2)).ToString() + "万";
+                return "-";
             }
+            
             return money.ToString();
         }
 
@@ -86,6 +95,35 @@ namespace AIService.Helper
             if (DateTime.Now.Year != dateTime.Year)
                 return dateTime.ToString("yyyy年MM月dd日 HH:mm");
             return dateTime.ToString("MM月dd日 HH:mm");
+        }
+
+        public static async Task<bool> IsHolidayByDate(DateTime date)
+        {
+            var isHoliday = false;
+            var webClient = new System.Net.WebClient();
+            var PostVars = new System.Collections.Specialized.NameValueCollection
+            {
+                { "d", date.ToString("yyyyMMdd") }//参数
+            };
+            try
+            {
+                var day = date.DayOfWeek;
+
+                //判断是否为周末
+                if (day == DayOfWeek.Sunday || day == DayOfWeek.Saturday)
+                    return true;
+
+                //0为工作日，1为周末，2为法定节假日
+                var byteResult = await webClient.UploadValuesTaskAsync("http://tool.bitefu.net/jiari/", "POST", PostVars);//请求地址,传参方式,参数集合
+                var result = Encoding.UTF8.GetString(byteResult);//获取返回值
+                if (result == "1" || result == "2")
+                    isHoliday = true;
+            }
+            catch
+            {
+                isHoliday = false;
+            }
+            return isHoliday;
         }
     }
 }
