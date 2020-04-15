@@ -22,7 +22,7 @@ namespace AIService.Controllers
     public class TalkController : Controller
     {
         #region 数据库连接
-        private readonly DbEntity db = new DbEntity();
+        private DbEntity db = new DbEntity();
         protected override void Dispose(bool disposing)
         {
             if (disposing) db.Dispose();
@@ -283,6 +283,7 @@ namespace AIService.Controllers
         public IActionResult GetTalkList(long UserId)
         {
             List<Talk> talks = db.Talks.OrderByDescending(s => s.TalkTime).ToList();
+            List<Comment> comments = db.Comments.ToList();
             Dictionary<Talk, string[]> result = new Dictionary<Talk, string[]>();
             IDatabase redisDatabase = RedisHelper.Value.Database;
             for(int i=0;i<talks.Count;i++)
@@ -295,13 +296,14 @@ namespace AIService.Controllers
                 string praiseNumber = redisDatabase.StringGet(TalkPraise_Key);
                 string transmitNumber = redisDatabase.StringGet(TalkTransmit_Key);
                 string commentNumber = redisDatabase.StringGet(TalkComment_Key);
-                string readNumber = redisDatabase.StringGet(TalkRead_Key);
+                string readNumber = (int.Parse(praiseNumber) + int.Parse(commentNumber)).ToString();
                 string Talk_User_Praise_Value = redisDatabase.KeyExists(Talk_User_Praise_Key).ToString();
                 result.Add(talks[i], new string[5] { praiseNumber, transmitNumber, commentNumber, readNumber, Talk_User_Praise_Value });
                 
             }
             return Json(new
             {
+                code = 200,
                 data = result.Select(s => new
                 {
                     s.Key.Id,
@@ -317,7 +319,18 @@ namespace AIService.Controllers
                     CommentNumber = s.Value[2],
                     ReadNumber = s.Value[3],
                     If_Praise = s.Value[4],
-                    PictureUrl = db.Pictures.FirstOrDefault(p => p.TalkId == s.Key.Id) == null ? null : db.Pictures.FirstOrDefault(p => p.TalkId == s.Key.Id).FileUrl
+                    PictureUrl = db.Pictures.FirstOrDefault(p => p.TalkId == s.Key.Id) == null ? null : db.Pictures.FirstOrDefault(p => p.TalkId == s.Key.Id).FileUrl,
+                    CommentData = s.Key.Comments.Select(c => new
+                    {
+                        c.Id,
+                        c.Point,
+                        c.UserId,
+                        Username = db.Users.FirstOrDefault(u => u.Id == c.UserId).Username,
+                        ImageUrl = db.Users.FirstOrDefault(t => t.Id == c.UserId).ImageUrl,
+                        CommentTime = ParamHelper.TalkTimeConvert(c.CommentTime),
+                        PraiseNumber = redisDatabase.StringGet("CommentId=" + c.Id.ToString() + "&Praise"),
+                        Comment_If_Praise = redisDatabase.KeyExists("CommentId=" + c.Id.ToString() + "&UserId=" + UserId.ToString()).ToString()
+                    })
                 })
             });
         }
@@ -363,7 +376,7 @@ namespace AIService.Controllers
                     Username = db.Users.FirstOrDefault(u=>u.Id==s.UserId).Username,
                     ImageUrl = db.Users.FirstOrDefault(t => t.Id == s.UserId).ImageUrl,
                     CommentTime = ParamHelper.TalkTimeConvert(s.CommentTime),
-                    PraiseNumber = redisDatabase.StringGet("CommentId=" + s.Id.ToString() + "&PraiseNumber"),
+                    PraiseNumber = redisDatabase.StringGet("CommentId=" + s.Id.ToString() + "&Praise"),
                     Comment_If_Praise = redisDatabase.KeyExists("CommentId=" + s.Id.ToString() + "&UserId=" + UserId.ToString()).ToString()
                 })
             });

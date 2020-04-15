@@ -4,14 +4,16 @@ using AIService.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace AIService.Migrations
 {
     [DbContext(typeof(DbEntity))]
-    partial class DbEntityModelSnapshot : ModelSnapshot
+    [Migration("20200415021024_m3")]
+    partial class m3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -510,27 +512,6 @@ namespace AIService.Migrations
                     b.ToTable("StockComments");
                 });
 
-            modelBuilder.Entity("AIService.Models.StockSearch", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<DateTime>("SearchTime");
-
-                    b.Property<string>("StockCode");
-
-                    b.Property<string>("StockName");
-
-                    b.Property<long>("UserId");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("StockSearches");
-                });
-
             modelBuilder.Entity("AIService.Models.Talk", b =>
                 {
                     b.Property<long>("Id")
@@ -743,14 +724,6 @@ namespace AIService.Migrations
                         .HasForeignKey("StockId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("AIService.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("AIService.Models.StockSearch", b =>
-                {
                     b.HasOne("AIService.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")

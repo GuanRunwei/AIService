@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -248,17 +249,37 @@ namespace AIService.Controllers
                     .addTextPara("stocks", StockCode)
                     .addTextPara("needIndex", "0")
                     .post();
-                        JObject tempObject = JsonConvert.DeserializeObject<JObject>(tempResult);
-                        string ex_name = tempObject["showapi_res_body"]["list"].First["market"].ToString();
-                        if (ex_name == "sh")
-                            newStock.StockExchangeName = Enums.StockExchange.上海证券交易所;
-                        if (ex_name == "sz")
-                            newStock.StockExchangeName = Enums.StockExchange.深圳证券交易所;
-                        if (ex_name == "hk")
-                            newStock.StockExchangeName = Enums.StockExchange.香港交易所;
-                        db.Stocks.Add(newStock);
-                        db.SaveChanges();
-                        StockIndustry = "";
+                        try
+                        {
+                            JObject tempObject = JsonConvert.DeserializeObject<JObject>(tempResult);
+                            string ex_name;
+                            if (tempObject["showapi_res_body"]["list"].Count()==0)
+                            {
+                                StockIndustry = "";
+                                ex_name = "";
+
+                            }
+                            else
+                            {
+                                ex_name = tempObject["showapi_res_body"]["list"].First["market"].ToString();
+                                if (ex_name == "sh")
+                                    newStock.StockExchangeName = Enums.StockExchange.上海证券交易所;
+                                else if (ex_name == "sz")
+                                    newStock.StockExchangeName = Enums.StockExchange.深圳证券交易所;
+                                else if (ex_name == "hk")
+                                    newStock.StockExchangeName = Enums.StockExchange.香港交易所;
+
+                                db.Stocks.Add(newStock);
+                                db.SaveChanges();
+                                StockIndustry = "";
+                            }
+                            
+                        }
+                        catch(Exception ex)
+                        {
+                            continue;
+                        }
+                        
                         
                     }
                     else
@@ -1042,7 +1063,7 @@ namespace AIService.Controllers
 
         #region 单支股票详细信息
         [HttpGet]
-        public IActionResult GetOneStockDetail(string NameorCode)
+        public IActionResult GetOneStockDetail(string NameorCode, long UserId)
         {
             JObject jObject = null;
             JObject result = null;
@@ -1076,7 +1097,6 @@ namespace AIService.Controllers
                     });
                 string code = result["code"].ToString();
                 string name = result["name"].ToString();
-
                 string nowPrice = result["nowPrice"].ToString();
                 string diff_money = result["diff_money"].ToString();
                 string diff_rate = result["diff_rate"].ToString() + "%";
@@ -1103,7 +1123,7 @@ namespace AIService.Controllers
                 string sell3_n = result["sell3_n"].ToString();
                 string sell3_m = result["sell3_m"].ToString();
                 string sell4_n = result["sell4_n"].ToString();
-                string sell4_m = result["sell5_n"].ToString();
+                string sell4_m = result["sell4_m"].ToString();
                 string sell5_m = result["sell5_m"].ToString();
                 string sell5_n = result["sell5_n"].ToString();
                 result_dict.Add(name, new string[] { code, nowPrice, diff_money, diff_rate,
@@ -1111,7 +1131,26 @@ namespace AIService.Controllers
                     all_value, tradeAmount, buy1_n,buy1_m,buy2_n,
                     buy2_m,buy3_n,buy3_m,buy4_n,buy4_m,buy5_n,buy5_m,
                     sell1_n,sell1_m,sell2_n,sell2_m,sell3_n,sell3_m,sell4_n,sell4_m,sell5_m,sell5_n});
+                if(db.StockSearches.Where(s=>s.StockCode == result["code"].ToString()&&s.UserId==UserId).Count() == 0)
+                {
+                    StockSearch stockSearch = new StockSearch()
+                    {
+                        UserId = UserId,
+                        StockCode = result["code"].ToString(),
+                        StockName = result["name"].ToString(),
+                        SearchTime = DateTime.Now,
 
+                    };
+                    db.StockSearches.Add(stockSearch);
+                    db.SaveChanges();
+                }
+                else
+                {
+                    StockSearch stockSearch = db.StockSearches.FirstOrDefault(s => s.StockCode == result["code"].ToString() && s.UserId == UserId);
+                    stockSearch.SearchTime = DateTime.Now;
+                    db.Entry(stockSearch).State = EntityState.Modified;
+                    db.SaveChanges();
+                }
             }
 #pragma warning disable CS0168 // 声明了变量“ex”，但从未使用过
             catch (Exception ex)
@@ -1489,6 +1528,27 @@ namespace AIService.Controllers
         }
         #endregion
 
+        #region 删除论股
+        [HttpPost]
+        public HttpResponseMessage DeleteStockComment(long StockCommentId)
+        {
+            StockComment stockComment = db.StockComments.FirstOrDefault(s => s.Id == StockCommentId);
+            IDatabase redisDatabase = RedisHelper.Value.Database;
+            string StockComment_PraiseNumber_Key = "StockCommentId=" + StockCommentId.ToString() + "&PraiseNumber";
+            try
+            {
+                redisDatabase.KeyDelete(StockComment_PraiseNumber_Key);
+                db.StockComments.Remove(stockComment);
+                db.SaveChanges();
+            }
+            catch(Exception ex)
+            {
+                return ApiResponse.BadRequest("删除失败");
+            }
+            return ApiResponse.Ok("删除成功");
+        }
+        #endregion
+
         #endregion
 
         #region 龙虎榜-------------------------------
@@ -1553,7 +1613,225 @@ namespace AIService.Controllers
             }
             return Json(result);
         }
-        #endregion               
+        #endregion
+
+        #region 搜索股票初始界面
+        [HttpGet]
+        public IActionResult GetStartSearchStocks(long UserId)
+        {
+            List<StockSearch> mySearch = db.StockSearches.Where(s => s.UserId == UserId).OrderByDescending(s => s.SearchTime).ToList();         
+            Dictionary<string[], int> popular = new Dictionary<string[], int>();
+            foreach(var item in db.StockSearches.ToList())
+            {
+                int temp = popular.GetValueOrDefault(new string[2] { item.StockCode, item.StockName }, 0) + 1;
+                popular[new string[2] { item.StockCode, item.StockName }] = temp;
+            }
+            if (mySearch.Count <= 8 && popular.Count <= 4)
+                return Json(new 
+                {
+                    code = 200,
+                    MySearch = mySearch.Select(s=>new 
+                    {
+                        s.StockName,
+                        s.StockCode
+                    }),
+                    AllSearch = popular.OrderByDescending(s=>s.Value).Select(s=>new 
+                    {
+                        StockCode = s.Key[0],
+                        StockName = s.Key[1]
+                    })
+                });
+            else if (mySearch.Count <= 8 && popular.Count > 4)
+                return Json(new
+                {
+                    code = 200,
+                    MySearch = mySearch.Select(s => new
+                    {
+                        s.StockName,
+                        s.StockCode
+                    }),
+                    AllSearch = popular.OrderByDescending(s => s.Value).Take(4).Select(s => new
+                    {
+                        StockCode = s.Key[0],
+                        StockName = s.Key[1]
+                    })
+                });
+            else if (mySearch.Count > 8 && popular.Count <= 4)
+                return Json(new
+                {
+                    code = 200,
+                    MySearch = mySearch.Take(8).Select(s => new
+                    {
+                        s.StockName,
+                        s.StockCode
+                    }),
+                    AllSearch = popular.OrderByDescending(s => s.Value).Select(s => new
+                    {
+                        StockCode = s.Key[0],
+                        StockName = s.Key[1]
+                    })
+                });
+            else
+                return Json(new
+                {
+                    code = 200,
+                    MySearch = mySearch.Take(8).Select(s => new
+                    {
+                        s.StockName,
+                        s.StockCode
+                    }),
+                    AllSearch = popular.OrderByDescending(s => s.Value).Take(4).Select(s => new
+                    {
+                        StockCode = s.Key[0],
+                        StockName = s.Key[1]
+                    })
+                });
+
+
+        }
+        #endregion
+
+        #region 搜索股票
+        [HttpGet]
+        public IActionResult SearchStocks(string SearchText)
+        {
+            List<Stock> stocks = db.Stocks.Where(s => s.StockCode.ToLower() == SearchText.ToLower() || s.StockName.ToLower() == SearchText.ToLower() || s.StockName.ToLower().Contains(SearchText.ToLower()) || s.StockCode.ToLower().Contains(SearchText.ToLower()) || GetSimilarity(SearchText, s.StockName) >= 0.75 || SearchText.ToLower().Contains(s.StockName.ToLower())).ToList();
+            return Json(new 
+            {
+                code = 200,
+                data = stocks.Select(s=>new 
+                {
+                    s.StockName,
+                    s.StockCode
+                })
+            });
+        }
+        #endregion
+
+        #region 编辑距离算法文本相似度匹配
+        public static double GetSimilarity(String doc1, String doc2)
+        {
+            if (doc1 != null && doc1.Trim().Length > 0 && doc2 != null
+                    && doc2.Trim().Length > 0)
+            {
+                Dictionary<int, int[]> AlgorithmMap = new Dictionary<int, int[]>();
+                //将两个字符串中的中文字符以及出现的总数封装到，AlgorithmMap中
+                for (int i = 0; i < doc1.Length; i++)
+                {
+                    char d1 = doc1.ToCharArray()[i];
+                    if (IsHanZi(d1))
+                    {
+                        int charIndex = GetGB2312Id(d1);
+                        if (charIndex != -1)
+                        {
+                            int[] fq = null;
+                            try
+                            {
+                                fq = AlgorithmMap[charIndex];
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            finally
+                            {
+                                if (fq != null && fq.Length == 2)
+                                {
+                                    fq[0]++;
+                                }
+                                else
+                                {
+                                    fq = new int[2];
+                                    fq[0] = 1;
+                                    fq[1] = 0;
+                                    AlgorithmMap.Add(charIndex, fq);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int i = 0; i < doc2.Length; i++)
+                {
+                    char d2 = doc2.ToCharArray()[i];
+                    if (IsHanZi(d2))
+                    {
+                        int charIndex = GetGB2312Id(d2);
+                        if (charIndex != -1)
+                        {
+                            int[] fq = null;
+                            try
+                            {
+                                fq = AlgorithmMap[charIndex];
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            finally
+                            {
+                                if (fq != null && fq.Length == 2)
+                                {
+                                    fq[1]++;
+                                }
+                                else
+                                {
+                                    fq = new int[2];
+                                    fq[0] = 0;
+                                    fq[1] = 1;
+                                    AlgorithmMap.Add(charIndex, fq);
+                                }
+                            }
+                        }
+                    }
+                }
+                double sqdoc1 = 0;
+                double sqdoc2 = 0;
+                double denominator = 0;
+                foreach (KeyValuePair<int, int[]> par in AlgorithmMap)
+                {
+                    int[] c = par.Value;
+                    denominator += c[0] * c[1];
+                    sqdoc1 += c[0] * c[0];
+                    sqdoc2 += c[1] * c[1];
+                }
+                return denominator / Math.Sqrt(sqdoc1 * sqdoc2);
+            }
+            else
+            {
+                throw new Exception();
+            }
+        }
+        public static bool IsHanZi(char ch)
+        {
+            // 判断是否汉字
+            return (ch >= 0x4E00 && ch <= 0x9FA5);
+        }
+        /**
+         * 根据输入的Unicode字符，获取它的GB2312编码或者ascii编码，
+         * 
+         * @param ch
+         *            输入的GB2312中文字符或者ASCII字符(128个)
+         * @return ch在GB2312中的位置，-1表示该字符不认识
+         */
+        public static short GetGB2312Id(char ch)
+        {
+            try
+            {
+                byte[] buffer = System.Text.Encoding.GetEncoding("gb2312").GetBytes(ch.ToString());
+                if (buffer.Length != 2)
+                {
+                    // 正常情况下buffer应该是两个字节，否则说明ch不属于GB2312编码，故返回'?'，此时说明不认识该字符
+                    return -1;
+                }
+                int b0 = (int)(buffer[0] & 0x0FF) - 161; // 编码从A1开始，因此减去0xA1=161
+                int b1 = (int)(buffer[1] & 0x0FF) - 161; // 第一个字符和最后一个字符没有汉字，因此每个区只收16*6-2=94个汉字
+                return (short)(b0 * 94 + b1);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            return -1;
+        }
+        #endregion
 
     }
 }

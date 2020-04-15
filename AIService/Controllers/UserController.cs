@@ -796,6 +796,216 @@ namespace AIService.Controllers
 
         #endregion
 
+        #region 粉丝列表
+        [HttpGet]
+        public IActionResult GetFansList(long UserId)
+        {
+            List<User> fans = new List<User>();
+            long[] fans_Id = db.FollowRecords.Where(s => s.FollowedId == UserId).Select(s=>s.FollowingId).ToArray();
+            foreach(long id in fans_Id)
+            {
+                fans.Add(db.Users.FirstOrDefault(s => s.Id == id));
+            }
+            return Json(new 
+            {
+                code = 200,
+                data = fans.Select(s=>new 
+                {
+                    s.Id,
+                    s.Username,
+                    StockAge = "股龄" + s.StockAge,
+                    s.ImageUrl
+                })
+            });
+        }
+        #endregion
+
+        #region 关注列表
+        [HttpGet]
+        public IActionResult GetAttentionList(long UserId)
+        {
+            List<User> fans = new List<User>();
+            long[] fans_Id = db.FollowRecords.Where(s => s.FollowingId == UserId).Select(s => s.FollowedId).ToArray();
+            foreach (long id in fans_Id)
+            {
+                fans.Add(db.Users.FirstOrDefault(s => s.Id == id));
+            }
+            return Json(new
+            {
+                code = 200,
+                data = fans.Select(s => new
+                {
+                    s.Id,
+                    s.Username,
+                    StockAge = "股龄" + s.StockAge,
+                    s.ImageUrl
+                })
+            });
+        }
+        #endregion
+
+        #region 搜索用户
+        [HttpGet]
+        public IActionResult SearchUsers(string Username)
+        {
+            List<User> resultUsers = db.Users.Where(s => s.Username.ToLower() == Username.ToLower() || s.Username.ToLower().Contains(Username.ToLower()) || GetSimilarity(s.Username, Username) >= 0.6).ToList();
+            return Json(new 
+            {
+                code = 200,
+                data = resultUsers.Select(s=>new 
+                {
+                    s.Id,
+                    s.ImageUrl,
+                    s.Username
+                })
+            });
+        }
+        #endregion
+
+        #region 搜索用户初始化界面
+        [HttpGet]
+        public IActionResult GetStartSearchUsers()
+        {
+            List<User> users = db.Users.OrderByDescending(s => s.FansNumber).Take(3).ToList();
+            return Json(new 
+            {
+                code = 200,
+                data = users.Select(s=>new 
+                {
+                    s.Id,
+                    s.Username,
+                    s.ImageUrl,
+                    FansNumber = s.FansNumber + "人关注" + (s.Gender.Equals(Enums.Gender.男) ? "他":"她")
+                })
+            });
+        }
+        #endregion
+
+        #region 编辑距离算法文本相似度匹配
+        public static double GetSimilarity(String doc1, String doc2)
+        {
+            if (doc1 != null && doc1.Trim().Length > 0 && doc2 != null
+                    && doc2.Trim().Length > 0)
+            {
+                Dictionary<int, int[]> AlgorithmMap = new Dictionary<int, int[]>();
+                //将两个字符串中的中文字符以及出现的总数封装到，AlgorithmMap中
+                for (int i = 0; i < doc1.Length; i++)
+                {
+                    char d1 = doc1.ToCharArray()[i];
+                    if (IsHanZi(d1))
+                    {
+                        int charIndex = GetGB2312Id(d1);
+                        if (charIndex != -1)
+                        {
+                            int[] fq = null;
+                            try
+                            {
+                                fq = AlgorithmMap[charIndex];
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            finally
+                            {
+                                if (fq != null && fq.Length == 2)
+                                {
+                                    fq[0]++;
+                                }
+                                else
+                                {
+                                    fq = new int[2];
+                                    fq[0] = 1;
+                                    fq[1] = 0;
+                                    AlgorithmMap.Add(charIndex, fq);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int i = 0; i < doc2.Length; i++)
+                {
+                    char d2 = doc2.ToCharArray()[i];
+                    if (IsHanZi(d2))
+                    {
+                        int charIndex = GetGB2312Id(d2);
+                        if (charIndex != -1)
+                        {
+                            int[] fq = null;
+                            try
+                            {
+                                fq = AlgorithmMap[charIndex];
+                            }
+                            catch (Exception)
+                            {
+                            }
+                            finally
+                            {
+                                if (fq != null && fq.Length == 2)
+                                {
+                                    fq[1]++;
+                                }
+                                else
+                                {
+                                    fq = new int[2];
+                                    fq[0] = 0;
+                                    fq[1] = 1;
+                                    AlgorithmMap.Add(charIndex, fq);
+                                }
+                            }
+                        }
+                    }
+                }
+                double sqdoc1 = 0;
+                double sqdoc2 = 0;
+                double denominator = 0;
+                foreach (KeyValuePair<int, int[]> par in AlgorithmMap)
+                {
+                    int[] c = par.Value;
+                    denominator += c[0] * c[1];
+                    sqdoc1 += c[0] * c[0];
+                    sqdoc2 += c[1] * c[1];
+                }
+                return denominator / Math.Sqrt(sqdoc1 * sqdoc2);
+            }
+            else
+            {
+                throw new Exception();
+            }
+        }
+        public static bool IsHanZi(char ch)
+        {
+            // 判断是否汉字
+            return (ch >= 0x4E00 && ch <= 0x9FA5);
+        }
+        /**
+         * 根据输入的Unicode字符，获取它的GB2312编码或者ascii编码，
+         * 
+         * @param ch
+         *            输入的GB2312中文字符或者ASCII字符(128个)
+         * @return ch在GB2312中的位置，-1表示该字符不认识
+         */
+        public static short GetGB2312Id(char ch)
+        {
+            try
+            {
+                byte[] buffer = System.Text.Encoding.GetEncoding("gb2312").GetBytes(ch.ToString());
+                if (buffer.Length != 2)
+                {
+                    // 正常情况下buffer应该是两个字节，否则说明ch不属于GB2312编码，故返回'?'，此时说明不认识该字符
+                    return -1;
+                }
+                int b0 = (int)(buffer[0] & 0x0FF) - 161; // 编码从A1开始，因此减去0xA1=161
+                int b1 = (int)(buffer[1] & 0x0FF) - 161; // 第一个字符和最后一个字符没有汉字，因此每个区只收16*6-2=94个汉字
+                return (short)(b0 * 94 + b1);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            return -1;
+        }
+        #endregion
+
         //        #region 上传头像
         //        [HttpPost]
         //        [DisableRequestSizeLimit]

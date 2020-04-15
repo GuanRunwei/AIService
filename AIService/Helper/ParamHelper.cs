@@ -78,7 +78,7 @@ namespace AIService.Helper
                 return "-";
             }
             
-            return money.ToString();
+            return Math.Round(money, 2).ToString();
         }
 
 

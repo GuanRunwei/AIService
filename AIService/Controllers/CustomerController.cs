@@ -432,7 +432,7 @@ namespace AIService.Controllers
             Console.WriteLine(result.Count);
             while(number_result[4]==0)
             {
-                int i = random.Next(1, result.Count);
+                int i = random.Next(1, result.Count-1);
                 if (!number_result.Contains(i))
                 {
                     number_result[count] = i;
@@ -478,62 +478,7 @@ namespace AIService.Controllers
         }
         #endregion
 
-        #region 资讯推荐
-        [HttpGet]
-        public IActionResult GetNeedNews(string Question)
-        {
-            List<News> news = db.News.ToList();
-            List<News> results = new List<News>();
-            for (int i = 0; i < news.Count(); i++)
-            {
-                if (GetSimilarity(Question, news[i].Title) > 0.6 || news[i].Content.Contains(Question))
-                    results.Add(news[i]);
-            }
-            if (results.Count() > 0)
-            {
-                if (results.Count() > 4 && results.Count() < 11)
-                    return Json(new
-                    {
-                        data = results.Select(s => new
-                        {
-                            s.Id,
-                            IssueTime = s.IssueTime.ToShortDateString().ToString(),
-                            s.Title,
-                            s.Source,
-                            s.Content,
-                            s.PicUrl1,
-                        })
-                    });
-                if (results.Count() > 10)
-                    return Json(new
-                    {
-                        data = results.Take(10).Select(s => new
-                        {
-                            s.Id,
-                            IssueTime = s.IssueTime.ToShortDateString().ToString(),
-                            s.Title,
-                            s.Source,
-                            s.Content,
-                            s.PicUrl1,
-                        })
-                    });
-                if (results.Count() < 5 && results.Count() > 0)
-                    return Json(new
-                    {
-                        data = results.Select(s => new
-                        {
-                            s.Id,
-                            IssueTime = s.IssueTime.ToShortDateString().ToString(),
-                            s.Title,
-                            s.Source,
-                            s.Content,
-                            s.PicUrl1,
-                        })
-                    });
-            }
-            return Json(new { });
-        }
-        #endregion
+
 
     }
 }

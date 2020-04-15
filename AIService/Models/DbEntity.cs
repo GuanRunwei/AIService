@@ -34,6 +34,7 @@ namespace AIService.Models
         public DbSet<StockAccount> StockAccounts { get; set; }
         public DbSet<SellStock> SellStocks { get; set; }
         public DbSet<TradeHistory> TradeHistories { get; set; }
+        public DbSet<StockSearch> StockSearches { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

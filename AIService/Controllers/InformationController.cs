@@ -435,5 +435,41 @@ namespace AIService.Controllers
         }
         #endregion
 
+        #region 资讯搜索初始化界面
+        [HttpGet]
+        public IActionResult GetStartNewsSearch()
+        {
+            int[] number_result = new int[3];
+            Random random = new Random();
+            IList<News> news = db.News.Where(s => s.NewsType == Enums.NewsType.首页).ToList();
+            Dictionary<long, News> result = new Dictionary<long, News>();
+            List<News> final_result = new List<News>();
+            int count = 0;
+            for (int i = 1; i < news.Count; i++)
+            {
+                result.Add(i, news[i]);
+            }
+            Console.WriteLine(result.Count);
+            while (number_result[2] == 0)
+            {
+                int i = random.Next(1, result.Count-1);
+                if (!number_result.Contains(i))
+                {
+                    number_result[count] = i;
+                    count++;
+                }
+            }
+            for (int i = 0; i < number_result.Length; i++)
+            {
+                final_result.Add(result[number_result[i]]);
+            }
+            return Json(new
+            {
+                code = 200,
+                data = final_result.Select(s => new { s.Id, Title = s.Title.Length > 20 ? (s.Title.Substring(0, 20) + "……") : s.Title })
+            });
+        }
+        #endregion
+
     }
 }

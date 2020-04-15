@@ -13,9 +13,9 @@ namespace AIService.Models
             this.Pictures = new List<Picture>();
         }
         #region 导航属性
-        public virtual List<Comment> Comments { get; set; }
-        public virtual List<Picture> Pictures { get; set; }
-        public virtual User User { get; set; }
+        public List<Comment> Comments { get; set; }
+        public List<Picture> Pictures { get; set; }
+        public User User { get; set; }
         #endregion
          
         public long Id { get; set; } //说说Id

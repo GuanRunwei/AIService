@@ -286,7 +286,7 @@ namespace AIService.Controllers
         [HttpGet]
         public HttpResponseMessage GetStockMainPage(long UserId)
         {
-            Thread.Sleep(1);
+
             User user = db.Users.FirstOrDefault(s => s.Id == UserId);
             StockAccount stockAccount = db.StockAccounts.FirstOrDefault(s => s.UserId == UserId);
             JArray stockList = null;
@@ -378,7 +378,7 @@ namespace AIService.Controllers
                 stockAccount.SumMoney,
                 SumStockValue = ParamHelper.ConvertNumber(stockAccount.SumStockValue),
                 ValidMoney = ParamHelper.ConvertNumber(stockAccount.ValidMoney),
-                Profit_or_Loss = stockAccount.Profit_or_Loss.ToString(),
+                Profit_or_Loss = Math.Round(stockAccount.Profit_or_Loss, 2),
                 stockAccount.Rank
             });
         }
@@ -471,9 +471,9 @@ namespace AIService.Controllers
             return Json(new
             {
                 code = 200,
-                stockAccount.SumMoney,
-                stockAccount.ValidMoney,
-                stockAccount.SumStockValue,
+                SumMoney = Math.Round(stockAccount.SumMoney, 2),
+                ValidMoney = Math.Round(stockAccount.ValidMoney, 2),
+                SumStockValue = Math.Round(stockAccount.SumStockValue, 2),
                 Today_Profit_or_Loss = Math.Round(Today_Profit_or_Loss, 2),
                 data = simulationStocks.Select(s=>new 
                 {
