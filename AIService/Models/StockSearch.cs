@@ -15,5 +15,6 @@ namespace AIService.Models
         public string StockCode { get; set; }
         public string StockName { get; set; }
         public DateTime SearchTime { get; set; }
+        public int Status { get; set; }
     }
 }

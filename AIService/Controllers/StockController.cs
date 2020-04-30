@@ -1139,7 +1139,7 @@ namespace AIService.Controllers
                         StockCode = result["code"].ToString(),
                         StockName = result["name"].ToString(),
                         SearchTime = DateTime.Now,
-
+                        Status = 1
                     };
                     db.StockSearches.Add(stockSearch);
                     db.SaveChanges();
@@ -1405,6 +1405,14 @@ namespace AIService.Controllers
 
                 jObject = JsonConvert.DeserializeObject<JObject>(res);
                 result = JArray.Parse(jObject["showapi_res_body"]["dataList"].ToString());
+                if(result.Count==0)
+                    return Json(new
+                    {
+                        code = 200,
+                        y_min = -1,
+                        y_max = -1,
+                        data = result
+                    });
                 result = new JArray(result.OrderBy(s => s["time"]));
                 foreach (var item in result)
                 {
@@ -1438,10 +1446,10 @@ namespace AIService.Controllers
             IDatabase redisDatabase = RedisHelper.Value.Database;
             User tempUser = db.Users.FirstOrDefault(s => s.Id == UserId);
             List<StockComment> stockComments = db.StockComments.Where(s => s.Stock.StockCode == StockCode).OrderByDescending(s => s.CommentTime).ToList();
-            return Json(new 
+            return Json(new
             {
                 code = 200,
-                data = stockComments.Select(s=>new
+                data = stockComments.Select(s => new
                 {
                     s.Id,
                     s.UserId,
@@ -1450,7 +1458,8 @@ namespace AIService.Controllers
                     s.Point,
                     CommentTime = s.CommentTime.ToString(),
                     PraiseNumber = redisDatabase.StringGet("StockCommentId=" + s.Id.ToString() + "&PraiseNumber"),
-                    If_Praise = redisDatabase.KeyExists("StockCommentId=" + s.Id.ToString() + "&UserId=" + UserId.ToString()).ToString()
+                    If_Praise = redisDatabase.KeyExists("StockCommentId=" + s.Id.ToString() + "&UserId=" + UserId.ToString()).ToString(),
+                    If_Delete = s.UserId == UserId ? "true" : "false"
                 })
             });
 
@@ -1619,12 +1628,12 @@ namespace AIService.Controllers
         [HttpGet]
         public IActionResult GetStartSearchStocks(long UserId)
         {
-            List<StockSearch> mySearch = db.StockSearches.Where(s => s.UserId == UserId).OrderByDescending(s => s.SearchTime).ToList();         
-            Dictionary<string[], int> popular = new Dictionary<string[], int>();
+            List<StockSearch> mySearch = db.StockSearches.Where(s => s.UserId == UserId&&s.Status == 1).OrderByDescending(s => s.SearchTime).ToList();         
+            Dictionary<KeyValuePair<string,string>, int> popular = new Dictionary<KeyValuePair<string, string>, int>();
             foreach(var item in db.StockSearches.ToList())
             {
-                int temp = popular.GetValueOrDefault(new string[2] { item.StockCode, item.StockName }, 0) + 1;
-                popular[new string[2] { item.StockCode, item.StockName }] = temp;
+                int temp = popular.GetValueOrDefault(new KeyValuePair<string, string>(item.StockCode, item.StockName), 0) + 1;
+                popular[new KeyValuePair<string, string>(item.StockCode, item.StockName)] = temp;
             }
             if (mySearch.Count <= 8 && popular.Count <= 4)
                 return Json(new 
@@ -1637,8 +1646,8 @@ namespace AIService.Controllers
                     }),
                     AllSearch = popular.OrderByDescending(s=>s.Value).Select(s=>new 
                     {
-                        StockCode = s.Key[0],
-                        StockName = s.Key[1]
+                        StockCode = s.Key.Key,
+                        StockName = s.Key.Value
                     })
                 });
             else if (mySearch.Count <= 8 && popular.Count > 4)
@@ -1652,8 +1661,8 @@ namespace AIService.Controllers
                     }),
                     AllSearch = popular.OrderByDescending(s => s.Value).Take(4).Select(s => new
                     {
-                        StockCode = s.Key[0],
-                        StockName = s.Key[1]
+                        StockCode = s.Key.Key,
+                        StockName = s.Key.Value
                     })
                 });
             else if (mySearch.Count > 8 && popular.Count <= 4)
@@ -1667,8 +1676,8 @@ namespace AIService.Controllers
                     }),
                     AllSearch = popular.OrderByDescending(s => s.Value).Select(s => new
                     {
-                        StockCode = s.Key[0],
-                        StockName = s.Key[1]
+                        StockCode = s.Key.Key,
+                        StockName = s.Key.Value
                     })
                 });
             else
@@ -1682,8 +1691,8 @@ namespace AIService.Controllers
                     }),
                     AllSearch = popular.OrderByDescending(s => s.Value).Take(4).Select(s => new
                     {
-                        StockCode = s.Key[0],
-                        StockName = s.Key[1]
+                        StockCode = s.Key.Key,
+                        StockName = s.Key.Value
                     })
                 });
 
@@ -1695,6 +1704,7 @@ namespace AIService.Controllers
         [HttpGet]
         public IActionResult SearchStocks(string SearchText)
         {
+            
             List<Stock> stocks = db.Stocks.Where(s => s.StockCode.ToLower() == SearchText.ToLower() || s.StockName.ToLower() == SearchText.ToLower() || s.StockName.ToLower().Contains(SearchText.ToLower()) || s.StockCode.ToLower().Contains(SearchText.ToLower()) || GetSimilarity(SearchText, s.StockName) >= 0.75 || SearchText.ToLower().Contains(s.StockName.ToLower())).ToList();
             return Json(new 
             {
@@ -1705,6 +1715,21 @@ namespace AIService.Controllers
                     s.StockCode
                 })
             });
+        }
+        #endregion
+
+        #region 清除搜索历史记录
+        [HttpPost]
+        public HttpResponseMessage DeleteMySearch(long UserId)
+        {
+            IList<StockSearch> stockSearches = db.StockSearches.Where(s => s.UserId == UserId && s.Status == 1).ToList();
+            foreach(var item in stockSearches)
+            {
+                item.Status = 0;
+                db.Entry(item).State = EntityState.Modified;
+            }
+            db.SaveChanges();
+            return ApiResponse.Ok("删除成功");
         }
         #endregion
 

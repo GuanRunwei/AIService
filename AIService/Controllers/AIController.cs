@@ -24,14 +24,14 @@ namespace AIService.Controllers
         }
         #endregion
 
-        #region 获取答案
-        public IActionResult GetAnswer(string text1,string text2)
-        {
-            double result = BaiduPlatform.GetSimilarity(text1, text2);
-            return Json(result);
+        //#region 获取答案
+        //public IActionResult GetAnswer(string text1,string text2)
+        //{
+        //    double result = BaiduPlatform.GetSimilarity(text1, text2);
+        //    return Json(result);
             
-        }
-        #endregion
+        //}
+        //#endregion
 
     }
 }

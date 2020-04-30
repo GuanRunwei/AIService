@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using AIService.Helper;
 using AIService.Helper.StockApiHelper.show.api;
@@ -19,6 +23,9 @@ namespace AIService.Controllers
     [ApiController]
     public class CustomerController : Controller
     {
+
+        public static Dictionary<String, Double> sim = new Dictionary<string, double>();      
+
         #region 数据库连接
         private readonly DbEntity db = new DbEntity();
         protected override void Dispose(bool disposing)
@@ -46,8 +53,8 @@ namespace AIService.Controllers
                     repetitions.Add(histories[i]);
             }
 
-            if(repetitions.Count()==1)
-            {                
+            if (repetitions.Count() == 1)
+            {
                 SearchHistory temp = repetitions.FirstOrDefault();
                 temp.SearchTime = DateTime.Now;
                 db.Entry(temp).State = EntityState.Modified;
@@ -125,11 +132,11 @@ namespace AIService.Controllers
             JObject Tuling_result = JsonConvert.DeserializeObject<JObject>(res);
             try
             {
-                if(Tuling_result["showapi_res_body"]["code"].ToString() == "200000")
+                if (Tuling_result["showapi_res_body"]["code"].ToString() == "200000")
                 {
                     string resultAnswer = Tuling_result["showapi_res_body"]["text"].ToString() + ": " + Tuling_result["showapi_res_body"]["url"];
                     resultAnswer = resultAnswer.Contains("图灵机器人") ? resultAnswer.Replace("图灵机器人", "炒股达人阿财") : resultAnswer;
-                    return Json(new 
+                    return Json(new
                     {
                         code = 400,
                         data = resultAnswer
@@ -141,10 +148,10 @@ namespace AIService.Controllers
                     {
                         code = 400,
                         data = Tuling_result["showapi_res_body"]["text"].ToString().Contains("图灵机器人") ? Tuling_result["showapi_res_body"]["text"].ToString().Replace("图灵机器人", "炒股达人阿财") : Tuling_result["showapi_res_body"]["text"].ToString()
-                });
+                    });
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return Json(new
                 {
@@ -167,7 +174,7 @@ namespace AIService.Controllers
             Knowledge knowledge = db.Knowledges.FirstOrDefault(s => s.Id == KnowledgeId);
             try
             {
-                if(db.SearchHistories.Where(s=>s.KnowledgeId==KnowledgeId).ToList().Count>0)
+                if (db.SearchHistories.Where(s => s.KnowledgeId == KnowledgeId).ToList().Count > 0)
                 {
                     SearchHistory history = db.SearchHistories.FirstOrDefault(s => s.KnowledgeId == KnowledgeId);
                     history.SearchTime = DateTime.Now;
@@ -188,22 +195,22 @@ namespace AIService.Controllers
                     db.SearchHistories.Add(searchHistory);
                     db.SaveChanges();
                 }
-                
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                return Json(new 
+                return Json(new
                 {
                     code = 400,
                     data = "网络出问题了"
                 });
             }
-            return Json(new 
+            return Json(new
             {
                 knowledge.Question,
                 knowledge.Answer
             });
-            
+
         }
         #endregion
 
@@ -217,11 +224,11 @@ namespace AIService.Controllers
             Dictionary<string, string> first_result = new Dictionary<string, string>();
             Dictionary<string, string> second_result = new Dictionary<string, string>();
             foreach (var item in dictionaries)
-            {                
+            {
                 if (GetSimilarity(item.Word, Word) > 0.85)
                 {
                     first_result.Add(item.Word, item.Explain);
-                    if(wordsHistories.Where(s=>s.Word==item.Word).Count()==0)
+                    if (wordsHistories.Where(s => s.Word == item.Word).Count() == 0)
                     {
                         wordsHistory.UserId = UserId;
                         wordsHistory.Word = item.Word;
@@ -229,7 +236,7 @@ namespace AIService.Controllers
                         wordsHistory.SearchTime = DateTime.Now;
                         db.WordsHistories.Add(wordsHistory);
                         db.SaveChanges();
-                    }                    
+                    }
                     break;
                 }
                 if (GetSimilarity(item.Word, Word) > 0.6)
@@ -243,7 +250,7 @@ namespace AIService.Controllers
                         wordsHistory.SearchTime = DateTime.Now;
                         db.WordsHistories.Add(wordsHistory);
                         db.SaveChanges();
-                    }                   
+                    }
                 }
             }
 
@@ -256,14 +263,14 @@ namespace AIService.Controllers
                     db.Entry(wordsHistory).State = EntityState.Modified;
                     db.SaveChanges();
                 }
-                    return Json(new
+                return Json(new
                 {
                     code = 200,
                     Word = first_result.First().Key,
                     Explain = first_result.First().Value,
                 });
             }
-                
+
             if (second_result.Count > 0)
             {
                 if (wordsHistories.Where(s => s.Word == second_result.First().Key).Count() > 0)
@@ -280,7 +287,7 @@ namespace AIService.Controllers
                     Explain = second_result.First().Value,
                 });
             }
-                
+
             return Json(new
             {
                 code = 400,
@@ -425,30 +432,30 @@ namespace AIService.Controllers
             Random random = new Random();
             int[] number_result = new int[5];
             int count = 0;
-            for(int i=1;i< knowledges.Count;i++)
+            for (int i = 1; i < knowledges.Count; i++)
             {
                 result.Add(i, knowledges[i]);
             }
             Console.WriteLine(result.Count);
-            while(number_result[4]==0)
+            while (number_result[4] == 0)
             {
-                int i = random.Next(1, result.Count-1);
+                int i = random.Next(1, result.Count - 1);
                 if (!number_result.Contains(i))
                 {
                     number_result[count] = i;
                     count++;
                 }
             }
-            for(int i=0;i<number_result.Length;i++)
+            for (int i = 0; i < number_result.Length; i++)
             {
                 final_result.Add(result[number_result[i]]);
             }
-            return Json(new 
+            return Json(new
             {
                 code = 200,
-                data = final_result.Select(s=>new { s.Id, s.Question, s.Answer})
+                data = final_result.Select(s => new { s.Id, s.Question, s.Answer })
             });
-            
+
         }
         #endregion
 
@@ -456,7 +463,7 @@ namespace AIService.Controllers
         [HttpGet]
         public IActionResult GetWordRecords(long UserId)
         {
-            List<WordsHistory> wordsHistories = db.WordsHistories.OrderByDescending(s => s.SearchTime).Where(s=>s.UserId==UserId).ToList();
+            List<WordsHistory> wordsHistories = db.WordsHistories.OrderByDescending(s => s.SearchTime).Where(s => s.UserId == UserId).ToList();
             List<Dictionary> dictionaries = db.Dictionaries.ToList();
             if (wordsHistories.Count() > 14)
                 return Json(new
@@ -477,6 +484,95 @@ namespace AIService.Controllers
             });
         }
         #endregion
+
+        #region 测试句向量相似度
+        [HttpGet]
+        public IActionResult GetSentenceSim(String Text)
+        {
+            List<Knowledge> knowledges = db.Knowledges.ToList();
+            int threadNum = 13;
+            Thread[] thread = new Thread[threadNum];
+            AutoResetEvent[] events = new AutoResetEvent[threadNum];
+            //TraverseThread traverseThread1 = new TraverseThread(knowledges: knowledges.Take(150).ToList(), Text: Text);
+            //TraverseThread traverseThread2 = new TraverseThread(knowledges: knowledges.TakeLast(knowledges.Count - 150).ToList(), Text: Text);
+            //events[0] = new AutoResetEvent(false);
+            //thread[0] = new Thread(new ThreadStart(traverseThread1.Traverse));
+            //events[1] = new AutoResetEvent(false);
+            //thread[1] = new Thread(new ThreadStart(traverseThread2.Traverse));
+
+            for (int i = 0 , j = 0; i <= knowledges.Count - knowledges.Count / threadNum; i += knowledges.Count / threadNum, j++)
+            {
+                TraverseThread traverseThread = new TraverseThread(knowledges: knowledges.GetRange(i, knowledges.Count / threadNum), Text: Text);
+                events[j] = new AutoResetEvent(false);
+                thread[j] = new Thread(new ThreadStart(traverseThread.Traverse));
+            }
+            for (int i = 0; i < threadNum; i++)
+            {
+                thread[i].Start();
+            }
+            for (int i = 0; i < threadNum; i++)
+            {
+                thread[i].Join();
+            }
+
+            WaitHandle.WaitAll(events);
+            return Json(new
+            {
+                code = 200,
+                data = sim.Take(5).Select(s => new
+                {
+                    Question = s.Key,
+                    Similarity = s.Value
+                })
+            });
+        }
+        #endregion
+
+        #region 线程方法
+        public class TraverseThread
+        {
+            private List<Knowledge> knowledges;
+            private String Text;
+            public TraverseThread(List<Knowledge> knowledges, String Text)
+            {
+                this.knowledges = knowledges;
+                this.Text = Text;
+            }
+            #region 线程方法
+            public void Traverse()
+            {
+                JObject jObject = null;
+                new Thread(new ThreadStart(() =>
+                {
+                    lock(sim)
+                    {
+                        foreach (var item in knowledges)
+                        {
+                            string retString;
+                            StringBuilder url = new StringBuilder("http://116.62.208.165/api/get_similarity?Text1=").Append(Text).Append("&Text2=").Append(item.Question);
+                            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.ToString());
+                            request.Method = "GET";
+                            using (var response = (HttpWebResponse)request.GetResponse())
+                            {
+                                using (var reader = new StreamReader(response.GetResponseStream(), Encoding.GetEncoding("utf-8")))
+                                {
+                                    retString = reader.ReadToEnd();
+                                }
+                            }
+                            jObject = JsonConvert.DeserializeObject<JObject>(retString);
+                            Console.OutputEncoding = System.Text.Encoding.UTF8;
+                            Console.WriteLine("与问题：" + item.Question + "的相似度为：" + jObject["data"].ToString());
+                            sim.Add(item.Question, Double.Parse(jObject["data"].ToString()));
+                        }
+                    }
+                    Thread.Sleep(1000);
+                                      
+                })).Start();
+            }
+            #endregion
+        }
+        #endregion
+
 
 
 

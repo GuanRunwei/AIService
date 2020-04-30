@@ -314,7 +314,8 @@ namespace AIService.Controllers
         public IActionResult GetAllFollowUsers(long UserId)
         {
             IDatabase redisDatabase = RedisHelper.Value.Database;
-            List<FollowRecord> followRecords = db.FollowRecords.Where(s => s.FollowingId == UserId).ToList();
+            IList<FollowRecord> followRecords = db.FollowRecords.Where(s => s.FollowingId == UserId).ToList();
+            IList<Comment> comments = db.Comments.ToList();
             if (followRecords == null || followRecords.Count == 0)
                 return Json(new 
                 {
@@ -339,15 +340,15 @@ namespace AIService.Controllers
                         string TalkPraise_Value = redisDatabase.StringGet(TalkPraise_Key);
                         string TalkTransmit_Value = redisDatabase.StringGet(TalkTransmit_Key);
                         string TalkComment_Value = redisDatabase.StringGet(TalkComment_Key);
-                        string TalkRead_Value = redisDatabase.StringGet(TalkRead_Key);
+                        string TalkRead_Value = (int.Parse(TalkPraise_Value) + int.Parse(TalkComment_Value)).ToString();
                         string Talk_User_Praise_Value = redisDatabase.KeyExists(Talk_User_Praise_Key).ToString();
                         followTalks.Add(tempTalks[j], new KeyValuePair<User,string[]>(tempUser,new string[] { TalkPraise_Value, TalkTransmit_Value , TalkComment_Value, TalkRead_Value, Talk_User_Praise_Value }));
                     }
                 }
             }
-            return Json(new 
+            return Json(new
             {
-                data = followTalks.OrderByDescending(s => s.Key.TalkTime).Select(s => new 
+                data = followTalks.OrderByDescending(s => s.Key.TalkTime).Select(s => new
                 {
                     TalkId = s.Key.Id,
                     Content = s.Key.Content,
@@ -360,7 +361,18 @@ namespace AIService.Controllers
                     UserId = s.Value.Key.Id,
                     Username = s.Value.Key.Username,
                     ImageUrl = s.Value.Key.ImageUrl,
-                    Pictures = db.Pictures.Where(p=>p.TalkId==s.Key.Id).Select(p=>p.FileUrl).ToList()
+                    Pictures = db.Pictures.Where(p => p.TalkId == s.Key.Id).Select(p => p.FileUrl).ToList(),
+                    CommentData = s.Key.Comments.Where(c => c.TalkId == s.Key.Id).Select(c => new
+                    {
+                        c.Id,
+                        c.Point,
+                        c.UserId,
+                        Username = db.Users.FirstOrDefault(u => u.Id == c.UserId).Username,
+                        ImageUrl = db.Users.FirstOrDefault(t => t.Id == c.UserId).ImageUrl,
+                        CommentTime = ParamHelper.TalkTimeConvert(c.CommentTime),
+                        PraiseNumber = redisDatabase.StringGet("CommentId=" + c.Id.ToString() + "&Praise"),
+                        Comment_If_Praise = redisDatabase.KeyExists("CommentId=" + c.Id.ToString() + "&UserId=" + UserId.ToString()).ToString()
+                    })
                 })
             });
         }
