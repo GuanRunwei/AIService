@@ -486,7 +486,7 @@ namespace AIService.Controllers
                     data = new string[] { }
                 });
             List<News> news = new List<News>();
-            if(SearchText.Trim().Length < 6)
+            if(SearchText.Trim().Length < 5)
                 news = db.News.Where(s => s.NewsType == Enums.NewsType.首页 && (s.Title.ToLower() == SearchText.ToLower() || s.Title.ToLower().Contains(SearchText) || s.Content.ToLower().Contains(SearchText) || GetSimilarity(s.Title, SearchText) > 0.6)).OrderByDescending(s => s.IssueTime).ToList();
             else
             {

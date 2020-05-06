@@ -414,6 +414,24 @@ namespace AIService.Controllers
         }
         #endregion
 
+        #region 取消关注
+        [HttpPost]
+        public HttpResponseMessage CancelFollow(long FollowingId, long FollowedId)
+        {
+            FollowRecord followRecord = db.FollowRecords.FirstOrDefault(s => s.FollowingId == FollowingId && s.FollowedId == FollowedId);
+            try
+            {
+                db.FollowRecords.Remove(followRecord);
+                db.SaveChanges();
+            }
+            catch(Exception ex)
+            {
+                return ApiResponse.BadRequest("取消关注失败");
+            }
+            return ApiResponse.Ok("取消关注成功");
+        }
+        #endregion
+
         #region 所有用户信息
         //[Route("Users")]
         public IActionResult GetUsers()

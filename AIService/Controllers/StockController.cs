@@ -132,7 +132,7 @@ namespace AIService.Controllers
         }
         #endregion
 
-        #region A股沪深 左上角
+        #region A股沪深 股市状态
         [HttpGet]
         public IActionResult GetAShareStatus()
         {
@@ -1001,7 +1001,7 @@ namespace AIService.Controllers
                 if (double.Parse(result["dppj_data"].ToString()) <= 6 && double.Parse(result["dppj_data"].ToString()) > 4)
                     rise_and_fall.Add("投资建议", "大盘震荡，适当参与");
                 if (double.Parse(result["dppj_data"].ToString()) > 6)
-                    rise_and_fall.Add("投资建议", "大盘震荡，适当参与");
+                    rise_and_fall.Add("投资建议", "大盘走势良好，积极参与");
                 myStreamReader.Close();
                 myResponseStream.Close();
             }
@@ -1095,42 +1095,86 @@ namespace AIService.Controllers
                         code = 404,
                         message = "未找到数据"
                     });
-                string code = result["code"].ToString();
-                string name = result["name"].ToString();
-                string nowPrice = result["nowPrice"].ToString();
-                string diff_money = result["diff_money"].ToString();
-                string diff_rate = result["diff_rate"].ToString() + "%";
-                string todayMax = result["todayMax"].ToString();
-                string openPrice = result["openPrice"].ToString();
-                string todayMin = result["todayMin"].ToString();
-                string turnover = result["turnover"].ToString();
-                string all_value = result["all_value"].ToString() + "亿";
-                string tradeAmount = ParamHelper.ConvertNumber(Double.Parse(result["tradeAmount"].ToString()));
-                string buy1_n = result["buy1_n"].ToString();
-                string buy1_m = result["buy1_m"].ToString();
-                string buy2_n = result["buy2_n"].ToString();
-                string buy2_m = result["buy2_m"].ToString();
-                string buy3_n = result["buy3_n"].ToString();
-                string buy3_m = result["buy3_m"].ToString();
-                string buy4_n = result["buy4_n"].ToString();
-                string buy4_m = result["buy4_m"].ToString();
-                string buy5_n = result["buy5_n"].ToString();
-                string buy5_m = result["buy5_m"].ToString();
-                string sell1_n = result["sell1_n"].ToString();
-                string sell1_m = result["sell1_m"].ToString();
-                string sell2_n = result["sell2_n"].ToString();
-                string sell2_m = result["sell2_m"].ToString();
-                string sell3_n = result["sell3_n"].ToString();
-                string sell3_m = result["sell3_m"].ToString();
-                string sell4_n = result["sell4_n"].ToString();
-                string sell4_m = result["sell4_m"].ToString();
-                string sell5_m = result["sell5_m"].ToString();
-                string sell5_n = result["sell5_n"].ToString();
-                result_dict.Add(name, new string[] { code, nowPrice, diff_money, diff_rate,
+                if(StockCode.Length != 6)
+                {
+                    string code = result["code"].ToString();
+                    string name = result["name"].ToString();
+                    string nowPrice = result["nowPrice"].ToString();
+                    string diff_money = result["diff_money"].ToString();
+                    string diff_rate = result["diff_rate"].ToString() + "%";
+                    string todayMax = result["todayMax"].ToString();
+                    string openPrice = result["openPrice"].ToString();
+                    string todayMin = result["todayMin"].ToString();
+                    string turnover = result["turnover"].ToString();
+                    string all_value = result["all_value"].ToString() + "亿";
+                    string tradeAmount = ParamHelper.ConvertNumber(Double.Parse(result["tradeAmount"].ToString()));
+                    string buy1_n = result["buy1_n"].ToString();
+                    string buy1_m = result["buy1_m"].ToString();
+                    string buy2_n = result["buy2_n"].ToString();
+                    string buy2_m = result["buy2_m"].ToString();
+                    string buy3_n = result["buy3_n"].ToString();
+                    string buy3_m = result["buy3_m"].ToString();
+                    string buy4_n = result["buy4_n"].ToString();
+                    string buy4_m = result["buy4_m"].ToString();
+                    string buy5_n = result["buy5_n"].ToString();
+                    string buy5_m = result["buy5_m"].ToString();
+                    string sell1_n = result["sell1_n"].ToString();
+                    string sell1_m = result["sell1_m"].ToString();
+                    string sell2_n = result["sell2_n"].ToString();
+                    string sell2_m = result["sell2_m"].ToString();
+                    string sell3_n = result["sell3_n"].ToString();
+                    string sell3_m = result["sell3_m"].ToString();
+                    string sell4_n = result["sell4_n"].ToString();
+                    string sell4_m = result["sell4_m"].ToString();
+                    string sell5_m = result["sell5_m"].ToString();
+                    string sell5_n = result["sell5_n"].ToString();
+                    result_dict.Add(name, new string[] { code, nowPrice, diff_money, diff_rate,
                     todayMax, openPrice, todayMin, turnover,
                     all_value, tradeAmount, buy1_n,buy1_m,buy2_n,
                     buy2_m,buy3_n,buy3_m,buy4_n,buy4_m,buy5_n,buy5_m,
                     sell1_n,sell1_m,sell2_n,sell2_m,sell3_n,sell3_m,sell4_n,sell4_m,sell5_m,sell5_n});
+                }
+                else
+                {
+                    string code = result["code"].ToString();
+                    string name = result["name"].ToString();
+                    string nowPrice = result["nowPrice"].ToString();
+                    string diff_money = result["diff_money"].ToString();
+                    string diff_rate = result["diff_rate"].ToString() + "%";
+                    string todayMax = result["todayMax"].ToString();
+                    string openPrice = result["openPrice"].ToString();
+                    string todayMin = result["todayMin"].ToString();
+                    string turnover = result["turnover"].ToString();
+                    string all_value = result["all_value"].ToString() + "亿";
+                    string tradeAmount = ParamHelper.ConvertNumber(Double.Parse(result["tradeAmount"].ToString()));
+                    string buy1_n = result["buy1_n"].ToString();
+                    string buy1_m = result["buy1_m"].ToString();
+                    string buy2_n = result["buy2_n"].ToString();
+                    string buy2_m = result["buy2_m"].ToString();
+                    string buy3_n = result["buy3_n"].ToString();
+                    string buy3_m = result["buy3_m"].ToString();
+                    string buy4_n = result["buy4_n"].ToString();
+                    string buy4_m = result["buy4_m"].ToString();
+                    string buy5_n = result["buy5_n"].ToString();
+                    string buy5_m = result["buy5_m"].ToString();
+                    string sell1_n = result["sell1_n"].ToString();
+                    string sell1_m = result["sell1_m"].ToString();
+                    string sell2_n = result["sell2_n"].ToString();
+                    string sell2_m = result["sell2_m"].ToString();
+                    string sell3_n = result["sell3_n"].ToString();
+                    string sell3_m = result["sell3_m"].ToString();
+                    string sell4_n = result["sell4_n"].ToString();
+                    string sell4_m = result["sell4_m"].ToString();
+                    string sell5_m = result["sell5_m"].ToString();
+                    string sell5_n = result["sell5_n"].ToString();
+                    result_dict.Add(name, new string[] { code, nowPrice, diff_money, diff_rate,
+                    todayMax, openPrice, todayMin, turnover,
+                    all_value, tradeAmount, buy1_n,buy1_m,buy2_n,
+                    buy2_m,buy3_n,buy3_m,buy4_n,buy4_m,buy5_n,buy5_m,
+                    sell1_n,sell1_m,sell2_n,sell2_m,sell3_n,sell3_m,sell4_n,sell4_m,sell5_m,sell5_n});
+                }
+                
+                
                 if(db.StockSearches.Where(s=>s.StockCode == result["code"].ToString()&&s.UserId==UserId).Count() == 0)
                 {
                     StockSearch stockSearch = new StockSearch()
@@ -1384,9 +1428,23 @@ namespace AIService.Controllers
             {
                 if (ParamHelper.IsHolidayByDate(DateTime.Today.Date).Result == false)
                 {
-                    res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                    if(StockCode.Length!=6)
+                    {
+                        DateTime yesterday = DateTime.Today.AddDays(-12);
+                        string timeString = yesterday.ToString("yyyyMMdd");
+                        res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                    .addTextPara("code", StockCode)
+                    .addTextPara("time","day")
+                    .addTextPara("beginDay", timeString)
+                    .post();
+                    }
+                    else
+                    {
+                        res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
                     .addTextPara("code", StockCode)
                     .post();
+                    }
+                    
                 }
                 else
                 {
@@ -1395,11 +1453,25 @@ namespace AIService.Controllers
                     {
                         yesterday = yesterday.AddDays(-1);
                     }
-                    string timeString = yesterday.ToString("yyyyMMdd");
-                    res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
-                    .addTextPara("code", StockCode)
-                    .addTextPara("beginDay",timeString)
-                    .post();
+                    if(StockCode.Length!=6)
+                    {
+                        yesterday = DateTime.Today.AddDays(-12);
+                        string timeString = yesterday.ToString("yyyyMMdd");
+                        res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                        .addTextPara("code", StockCode)
+                        .addTextPara("time", "day")
+                        .addTextPara("beginDay", timeString)
+                        .post();
+                    }
+                    else
+                    {
+                        string timeString = yesterday.ToString("yyyyMMdd");
+                        res = new ShowApiRequest("http://route.showapi.com/131-50", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+                        .addTextPara("code", StockCode)
+                        .addTextPara("beginDay", timeString)
+                        .post();
+                    }
+                    
                 }
                 
 
@@ -1414,10 +1486,21 @@ namespace AIService.Controllers
                         data = result
                     });
                 result = new JArray(result.OrderBy(s => s["time"]));
-                foreach (var item in result)
+                if(StockCode.Length == 6)
                 {
-                    item["time"] = item["time"].ToString().Substring(8, 2) + ":" + item["time"].ToString().Substring(10, 2);
+                    foreach (var item in result)
+                    {
+                        item["time"] = item["time"].ToString().Substring(8, 2) + ":" + item["time"].ToString().Substring(10, 2);
+                    }
                 }
+                else
+                {
+                    foreach (var item in result)
+                    {
+                        item["time"] = item["time"].ToString().Substring(4, 4);
+                    }
+                }
+
             }
 #pragma warning disable CS0168 // 声明了变量“ex”，但从未使用过
             catch (Exception ex)
