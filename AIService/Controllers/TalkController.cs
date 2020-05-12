@@ -286,20 +286,13 @@ namespace AIService.Controllers
             List<Comment> comments = db.Comments.ToList();
             Dictionary<Talk, string[]> result = new Dictionary<Talk, string[]>();
             IDatabase redisDatabase = RedisHelper.Value.Database;
-            for(int i=0;i<talks.Count;i++)
+            foreach(var item in talks)
             {
-                string TalkPraise_Key = "TalkId=" + talks[i].Id.ToString() + "&PraiseNumber";
-                string TalkTransmit_Key = "TalkId=" + talks[i].Id.ToString() + "&TransmitNumber";
-                string TalkComment_Key = "TalkId=" + talks[i].Id.ToString() + "&CommentNumber";
-                string TalkRead_Key = "TalkId=" + talks[i].Id.ToString() + "&ReadNumber";
-                string Talk_User_Praise_Key = "TalkId=" + talks[i].Id.ToString() + "&UserId=" + UserId.ToString();
-                string praiseNumber = redisDatabase.StringGet(TalkPraise_Key);
-                string transmitNumber = redisDatabase.StringGet(TalkTransmit_Key);
-                string commentNumber = redisDatabase.StringGet(TalkComment_Key);
+                string praiseNumber = redisDatabase.StringGet("TalkId=" + item.Id.ToString() + "&PraiseNumber");
+                string commentNumber = redisDatabase.StringGet("TalkId=" + item.Id.ToString() + "&CommentNumber");
                 string readNumber = (int.Parse(praiseNumber) + int.Parse(commentNumber)).ToString();
-                string Talk_User_Praise_Value = redisDatabase.KeyExists(Talk_User_Praise_Key).ToString();
-                result.Add(talks[i], new string[5] { praiseNumber, transmitNumber, commentNumber, readNumber, Talk_User_Praise_Value });
-                
+                string Talk_User_Praise_Value = redisDatabase.KeyExists("TalkId=" + item.Id.ToString() + "&UserId=" + UserId.ToString()).ToString();
+                result.Add(item, new string[4] { praiseNumber, commentNumber, readNumber, Talk_User_Praise_Value });
             }
             return Json(new
             {
@@ -315,10 +308,9 @@ namespace AIService.Controllers
                     ImageUrl = db.Users.FirstOrDefault(t => t.Id == s.Key.UserId).ImageUrl,
                     StockAge = db.Users.FirstOrDefault(t => t.Id == s.Key.UserId).StockAge,
                     PraiseNumber = s.Value[0],
-                    TransmitNumber = s.Value[1],
-                    CommentNumber = s.Value[2],
-                    ReadNumber = s.Value[3],
-                    If_Praise = s.Value[4],
+                    CommentNumber = s.Value[1],
+                    ReadNumber = s.Value[2],
+                    If_Praise = s.Value[3],
                     PictureUrl = db.Pictures.FirstOrDefault(p => p.TalkId == s.Key.Id) == null ? null : db.Pictures.FirstOrDefault(p => p.TalkId == s.Key.Id).FileUrl,
                     CommentData = s.Key.Comments.Select(c => new
                     {

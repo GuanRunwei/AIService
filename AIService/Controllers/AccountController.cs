@@ -377,7 +377,7 @@ namespace AIService.Controllers
                 stockAccount.UserId,
                 stockAccount.SumMoney,
                 SumStockValue = ParamHelper.ConvertNumber(stockAccount.SumStockValue),
-                ValidMoney = ParamHelper.ConvertNumber(stockAccount.ValidMoney),
+                stockAccount.ValidMoney,
                 Profit_or_Loss = Math.Round(stockAccount.Profit_or_Loss, 2),
                 stockAccount.Rank
             });

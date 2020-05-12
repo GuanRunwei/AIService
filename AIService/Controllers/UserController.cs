@@ -385,6 +385,8 @@ namespace AIService.Controllers
             FollowRecord checkRecord = db.FollowRecords.FirstOrDefault(s => s.FollowedId == FollowedId && s.FollowingId == FollowingId);
             if (checkRecord != null)
                 return ApiResponse.BadRequest("您已关注过此用户");
+            if (FollowedId == FollowingId)
+                return ApiResponse.BadRequest("自己不能关注自己");
             FollowRecord followRecord = new FollowRecord
             {
                 FollowedId = FollowedId,
@@ -419,13 +421,23 @@ namespace AIService.Controllers
         public HttpResponseMessage CancelFollow(long FollowingId, long FollowedId)
         {
             FollowRecord followRecord = db.FollowRecords.FirstOrDefault(s => s.FollowingId == FollowingId && s.FollowedId == FollowedId);
+            if (followRecord == null)
+                return ApiResponse.BadRequest("您已取消关注");
+            User followedUser = db.Users.FirstOrDefault(s => s.Id == FollowedId);
+            User followingUser = db.Users.FirstOrDefault(s => s.Id == FollowingId);
             try
-            {
+            {              
+                followedUser.FansNumber -= 1;
+                followingUser.FollowNumber -= 1;
+                db.Entry(followedUser).State = EntityState.Modified;
+                db.Entry(followingUser).State = EntityState.Modified;
                 db.FollowRecords.Remove(followRecord);
                 db.SaveChanges();
             }
             catch(Exception ex)
             {
+                db.Entry(followedUser).State = EntityState.Unchanged;
+                db.Entry(followingUser).State = EntityState.Unchanged;
                 return ApiResponse.BadRequest("取消关注失败");
             }
             return ApiResponse.Ok("取消关注成功");
