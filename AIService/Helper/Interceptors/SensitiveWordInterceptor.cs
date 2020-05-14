@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace AIService.Helper
 {
-    #region 非法关键字过滤 bate 1.1
+#region 非法关键字判断 bate 1.1
     /// <summary>
-    /// 非法关键词过滤(自动忽略汉字数字字母间的其他字符)
+    /// 非法关键词判断(自动忽略汉字数字字母间的其他字符)
     /// </summary>
     public class SensitiveWordInterceptor
     {

@@ -13,6 +13,7 @@ using AIService.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.InMemory.ValueGeneration.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
@@ -39,180 +40,275 @@ namespace AIService.Controllers
         private readonly Lazy<RedisHelper> RedisHelper = new Lazy<RedisHelper>();
         #endregion
 
-        #region 获取相似问题
+        //#region 获取相似问题
+        //[HttpGet]
+        //public IActionResult GetSimilarQuestionList(string Question)
+        //{
+        //    List<Knowledge> knowledges = db.Knowledges.ToList();
+        //    List<SearchHistory> histories = db.SearchHistories.ToList();
+        //    List<SearchHistory> repetitions = new List<SearchHistory>();
+        //    SearchHistory searchHistory = null;
+        //    for (int i = 0; i < histories.Count(); i++)
+        //    {
+        //        if (GetSimilarity(Question, histories[i].HistoricalText) > 0.85)
+        //            repetitions.Add(histories[i]);
+        //    }
+
+        //    if (repetitions.Count() == 1)
+        //    {
+        //        SearchHistory temp = repetitions.FirstOrDefault();
+        //        temp.SearchTime = DateTime.Now;
+        //        db.Entry(temp).State = EntityState.Modified;
+        //        db.SaveChanges();
+
+        //    }
+        //    Dictionary<Knowledge, double> tempDatas = new Dictionary<Knowledge, double>();
+        //    if (GetSimilarity("我转银行突然冻结了", Question) > 0.8 || GetSimilarity("我银行账户被冻结了", Question) > 0.8 || GetSimilarity("账户被冻结怎么办", Question) > 0.8 || GetSimilarity("账户被冻结", Question) > 0.8 || GetSimilarity("银转证转不了", Question) > 0.8)
+        //        return Json(new
+        //        {
+        //            code = 200,
+        //            data = knowledges.Where(s => s.Id == 3).Select(s => new
+        //            {
+        //                s.Id,
+        //                s.Question
+        //            })
+        //        });
+        //    for (int i = 0; i < knowledges.Count(); i++)
+        //    {
+        //        if (GetSimilarity(knowledges[i].Question, Question) > 0.4)
+        //        {
+        //            tempDatas.Add(knowledges[i], GetSimilarity(knowledges[i].Question, Question));
+        //        }
+        //    }
+        //    Dictionary<Knowledge, double> results = tempDatas.OrderByDescending(s => s.Value).ToDictionary(s => s.Key, s => s.Value);
+        //    if (results.Count() > 0)
+        //    {
+        //        if (searchHistory != null)
+        //        {
+        //            searchHistory.Answer = results.First().Key.Answer;
+        //            db.SearchHistories.Add(searchHistory);
+        //            db.SaveChanges();
+        //        }
+        //        if (results.First().Value > 0.85)
+        //        {
+        //            return Json(new
+        //            {
+        //                code = 200,
+        //                data = results.Take(1).Select(s => new
+        //                {
+        //                    s.Key.Id,
+        //                    s.Key.Question
+        //                })
+        //            });
+        //        }
+        //        else if (results.Count() > 2)
+        //        {
+        //            return Json(new
+        //            {
+        //                code = 200,
+        //                data = results.Take(3).Select(s => new
+        //                {
+        //                    s.Key.Id,
+        //                    s.Key.Question,
+        //                })
+        //            });
+        //        }
+        //        else if (results.Count() <= 2 && results.Count() > 0)
+        //        {
+        //            return Json(new
+        //            {
+        //                code = 200,
+        //                data = results.Select(s => new
+        //                {
+        //                    s.Key.Id,
+        //                    s.Key.Question
+        //                })
+        //            });
+        //        }
+        //    }
+        //    String res = new ShowApiRequest("http://route.showapi.com/60-27", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
+        //                 .addTextPara("info", Question)
+        //                 .addTextPara("userid", "userid")
+        //                 .post();
+        //    JObject Tuling_result = JsonConvert.DeserializeObject<JObject>(res);
+        //    try
+        //    {
+        //        if (Tuling_result["showapi_res_body"]["code"].ToString() == "200000")
+        //        {
+        //            string resultAnswer = Tuling_result["showapi_res_body"]["text"].ToString() + ": " + Tuling_result["showapi_res_body"]["url"];
+        //            resultAnswer = resultAnswer.Contains("图灵机器人") ? resultAnswer.Replace("图灵机器人", "炒股达人阿财") : resultAnswer;
+        //            return Json(new
+        //            {
+        //                code = 400,
+        //                data = resultAnswer
+        //            });
+        //        }
+        //        if (Tuling_result["showapi_res_body"]["code"].ToString() == "100000")
+        //        {
+        //            return Json(new
+        //            {
+        //                code = 400,
+        //                data = Tuling_result["showapi_res_body"]["text"].ToString().Contains("图灵机器人") ? Tuling_result["showapi_res_body"]["text"].ToString().Replace("图灵机器人", "炒股达人阿财") : Tuling_result["showapi_res_body"]["text"].ToString()
+        //            });
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Json(new
+        //        {
+        //            code = 400,
+        //            data = "糟糕，网路好像出问题了"
+        //        });
+        //    }
+        //    return Json(new
+        //    {
+        //        code = 400,
+        //        data = "阿财没听懂，不过阿财会继续升级知识库的!"
+        //    });
+        //}
+        //#endregion
+
+        #region 微服务端智能客服
         [HttpGet]
-        public IActionResult GetSimilarQuestionList(string Question)
+        public IActionResult GetSimilarQuestionList(String Question)
         {
-            List<Knowledge> knowledges = db.Knowledges.ToList();
-            List<SearchHistory> histories = db.SearchHistories.ToList();
-            List<SearchHistory> repetitions = new List<SearchHistory>();
-            SearchHistory searchHistory = null;
-            for (int i = 0; i < histories.Count(); i++)
-            {
-                if (GetSimilarity(Question, histories[i].HistoricalText) > 0.85)
-                    repetitions.Add(histories[i]);
-            }
-
-            if (repetitions.Count() == 1)
-            {
-                SearchHistory temp = repetitions.FirstOrDefault();
-                temp.SearchTime = DateTime.Now;
-                db.Entry(temp).State = EntityState.Modified;
-                db.SaveChanges();
-
-            }
-            Dictionary<Knowledge, double> tempDatas = new Dictionary<Knowledge, double>();
-            if (GetSimilarity("我转银行突然冻结了", Question) > 0.8 || GetSimilarity("我银行账户被冻结了", Question) > 0.8 || GetSimilarity("账户被冻结怎么办", Question) > 0.8 || GetSimilarity("账户被冻结", Question) > 0.8 || GetSimilarity("银转证转不了", Question) > 0.8)
-                return Json(new
-                {
-                    code = 200,
-                    data = knowledges.Where(s => s.Id == 3).Select(s => new
-                    {
-                        s.Id,
-                        s.Question
-                    })
-                });
-            for (int i = 0; i < knowledges.Count(); i++)
-            {
-                if (GetSimilarity(knowledges[i].Question, Question) > 0.4)
-                {
-                    tempDatas.Add(knowledges[i], GetSimilarity(knowledges[i].Question, Question));
-                }
-            }
-            Dictionary<Knowledge, double> results = tempDatas.OrderByDescending(s => s.Value).ToDictionary(s => s.Key, s => s.Value);
-            if (results.Count() > 0)
-            {
-                if (searchHistory != null)
-                {
-                    searchHistory.Answer = results.First().Key.Answer;
-                    db.SearchHistories.Add(searchHistory);
-                    db.SaveChanges();
-                }
-                if (results.First().Value > 0.85)
-                {
-                    return Json(new
-                    {
-                        code = 200,
-                        data = results.Take(1).Select(s => new
-                        {
-                            s.Key.Id,
-                            s.Key.Question
-                        })
-                    });
-                }
-                else if (results.Count() > 2)
-                {
-                    return Json(new
-                    {
-                        code = 200,
-                        data = results.Take(3).Select(s => new
-                        {
-                            s.Key.Id,
-                            s.Key.Question,
-                        })
-                    });
-                }
-                else if (results.Count() <= 2 && results.Count() > 0)
-                {
-                    return Json(new
-                    {
-                        code = 200,
-                        data = results.Select(s => new
-                        {
-                            s.Key.Id,
-                            s.Key.Question
-                        })
-                    });
-                }
-            }
-            String res = new ShowApiRequest("http://route.showapi.com/60-27", "138438", "dd520f20268747d4bbda22ac31c9cbdf")
-                         .addTextPara("info", Question)
-                         .addTextPara("userid", "userid")
-                         .post();
-            JObject Tuling_result = JsonConvert.DeserializeObject<JObject>(res);
+            JObject jObject = null;
+            String url = "https://cschat.cloud.alipay.com/client/chat.json?isRobotAssist&robotCode=ROB00000299&tntInstId=PCYOW2CN&sceneCode=SCE00000410&questionId=&question=" + Question + "&questionType=NORMAL&sessionUuid=RS-20200509222946-05579228&chatUuid=&_ksTS=1589034703121_109";
+            Dictionary<string, string> result = new Dictionary<string, string>();
             try
             {
-                if (Tuling_result["showapi_res_body"]["code"].ToString() == "200000")
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                request.Method = "POST";
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream myResponseStream = response.GetResponseStream();
+                StreamReader myStreamReader = new StreamReader(myResponseStream, Encoding.GetEncoding("utf-8"));
+                string retString = myStreamReader.ReadToEnd();
+                jObject = JsonConvert.DeserializeObject<JObject>(retString);
+                if(jObject["data"]["outputContent"]["outputType"].ToString() == "2")
                 {
-                    string resultAnswer = Tuling_result["showapi_res_body"]["text"].ToString() + ": " + Tuling_result["showapi_res_body"]["url"];
-                    resultAnswer = resultAnswer.Contains("图灵机器人") ? resultAnswer.Replace("图灵机器人", "炒股达人阿财") : resultAnswer;
-                    return Json(new
+                    JArray jArray = JArray.Parse(jObject["data"]["outputContent"]["subKnowledges"].ToString());
+                    for (int i = 0; i < jArray.Count; i++)
                     {
-                        code = 400,
-                        data = resultAnswer
-                    });
-                }
-                if (Tuling_result["showapi_res_body"]["code"].ToString() == "100000")
-                {
-                    return Json(new
-                    {
-                        code = 400,
-                        data = Tuling_result["showapi_res_body"]["text"].ToString().Contains("图灵机器人") ? Tuling_result["showapi_res_body"]["text"].ToString().Replace("图灵机器人", "炒股达人阿财") : Tuling_result["showapi_res_body"]["text"].ToString()
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                return Json(new
-                {
-                    code = 400,
-                    data = "糟糕，网路好像出问题了"
-                });
-            }
-            return Json(new
-            {
-                code = 400,
-                data = "阿财没听懂，不过阿财会继续升级知识库的!"
-            });
-        }
-        #endregion
-
-        #region 获取问题对应答案
-        [HttpGet]
-        public IActionResult GetAnswer(long KnowledgeId, long UserId)
-        {
-            Knowledge knowledge = db.Knowledges.FirstOrDefault(s => s.Id == KnowledgeId);
-            try
-            {
-                if (db.SearchHistories.Where(s => s.KnowledgeId == KnowledgeId).ToList().Count > 0)
-                {
-                    SearchHistory history = db.SearchHistories.FirstOrDefault(s => s.KnowledgeId == KnowledgeId);
-                    history.SearchTime = DateTime.Now;
-                    db.Entry(history).State = EntityState.Modified;
-                    db.SaveChanges();
+                        result.Add(jArray[i]["id"].ToString(), jArray[i]["title"].ToString().Trim());
+                    }
                 }
                 else
                 {
-                    SearchHistory searchHistory = new SearchHistory()
+                    return Json(new
                     {
-                        KnowledgeId = KnowledgeId,
-                        SearchTime = DateTime.Now,
-                        HistoricalText = knowledge.Question,
-                        Answer = knowledge.Answer,
-                        UserId = UserId,
-                        User = db.Users.FirstOrDefault(s => s.Id == UserId)
-                    };
-                    db.SearchHistories.Add(searchHistory);
-                    db.SaveChanges();
+                        code = 400,
+                        data = jObject["data"]["outputContent"]["text"].ToString()
+                    });
                 }
+                
+            }
+            catch(Exception ex)
+            {
+                return Json(new 
+                {
+                    code = 400,
+                    data = "糟糕，网络出问题了"
+                });
+            }
+            return Json(new
+            {
+                code = 200,
+                data = result.Select(s => new
+                {
+                    Id = s.Key,
+                    Question = s.Value
+                })
+            });
 
+        }
+        #endregion
+
+        #region 获取答案
+        [HttpGet]
+        public IActionResult GetAnswer(long KnowledgeId, long UserId)
+        {
+            JObject jObject = null;
+            String url = "https://cschat.cloud.alipay.com/client/chat.json?isRobotAssist&robotCode=ROB00000299&tntInstId=PCYOW2CN&sceneCode=SCE00000410&questionId=" + KnowledgeId + "&questionType=RELATED&sessionUuid=RS-20200514093449-05610126&chatUuid=RC-20200514093459-06353532&intentId=0&propId=0&_ksTS=1589420140329_71";
+            string[] result = new string[2];
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                request.Method = "GET";
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream myResponseStream = response.GetResponseStream();
+                StreamReader myStreamReader = new StreamReader(myResponseStream, Encoding.GetEncoding("utf-8"));
+                string retString = myStreamReader.ReadToEnd();
+                jObject = JsonConvert.DeserializeObject<JObject>(retString);
+                int interval = jObject["data"]["outputContent"]["knowledge"]["content"].ToString().LastIndexOf("<") - jObject["data"]["outputContent"]["knowledge"]["content"].ToString().IndexOf(">");
+                string Answer = jObject["data"]["outputContent"]["knowledge"]["content"].ToString();
+                Answer = System.Text.RegularExpressions.Regex.Replace(Answer, "<[^>]+>", "");
+                Answer = System.Text.RegularExpressions.Regex.Replace(Answer, "&[^;]+;", "");
+                string Question = jObject["data"]["outputContent"]["knowledge"]["title"].ToString().Trim();
+                result[0] = Question;
+                result[1] = Answer.Trim();
             }
             catch (Exception ex)
             {
                 return Json(new
                 {
                     code = 400,
-                    data = "网络出问题了"
+                    data = "糟糕，网络出问题了"
                 });
             }
             return Json(new
             {
-                knowledge.Question,
-                knowledge.Answer
+                Question = result[0],
+                Answer = result[1]
             });
-
         }
         #endregion
+
+        //#region 获取问题对应答案
+        //[HttpGet]
+        //public IActionResult GetAnswer(long KnowledgeId, long UserId)
+        //{
+        //    Knowledge knowledge = db.Knowledges.FirstOrDefault(s => s.Id == KnowledgeId);
+        //    try
+        //    {
+        //        if (db.SearchHistories.Where(s => s.KnowledgeId == KnowledgeId).ToList().Count > 0)
+        //        {
+        //            SearchHistory history = db.SearchHistories.FirstOrDefault(s => s.KnowledgeId == KnowledgeId);
+        //            history.SearchTime = DateTime.Now;
+        //            db.Entry(history).State = EntityState.Modified;
+        //            db.SaveChanges();
+        //        }
+        //        else
+        //        {
+        //            SearchHistory searchHistory = new SearchHistory()
+        //            {
+        //                KnowledgeId = KnowledgeId,
+        //                SearchTime = DateTime.Now,
+        //                HistoricalText = knowledge.Question,
+        //                Answer = knowledge.Answer,
+        //                UserId = UserId,
+        //                User = db.Users.FirstOrDefault(s => s.Id == UserId)
+        //            };
+        //            db.SearchHistories.Add(searchHistory);
+        //            db.SaveChanges();
+        //        }
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Json(new
+        //        {
+        //            code = 400,
+        //            data = "网络出问题了"
+        //        });
+        //    }
+        //    return Json(new
+        //    {
+        //        knowledge.Question,
+        //        knowledge.Answer
+        //    });
+
+        //}
+        //#endregion
 
         #region 获取名词解释
         [HttpGet]
@@ -493,13 +589,6 @@ namespace AIService.Controllers
             int threadNum = 13;
             Thread[] thread = new Thread[threadNum];
             AutoResetEvent[] events = new AutoResetEvent[threadNum];
-            //TraverseThread traverseThread1 = new TraverseThread(knowledges: knowledges.Take(150).ToList(), Text: Text);
-            //TraverseThread traverseThread2 = new TraverseThread(knowledges: knowledges.TakeLast(knowledges.Count - 150).ToList(), Text: Text);
-            //events[0] = new AutoResetEvent(false);
-            //thread[0] = new Thread(new ThreadStart(traverseThread1.Traverse));
-            //events[1] = new AutoResetEvent(false);
-            //thread[1] = new Thread(new ThreadStart(traverseThread2.Traverse));
-
             for (int i = 0 , j = 0; i <= knowledges.Count - knowledges.Count / threadNum; i += knowledges.Count / threadNum, j++)
             {
                 TraverseThread traverseThread = new TraverseThread(knowledges: knowledges.GetRange(i, knowledges.Count / threadNum), Text: Text);

@@ -872,6 +872,18 @@ namespace AIService.Controllers
         }
         #endregion
 
+        #region 并发测试
+        [HttpPost]
+        public IActionResult PostAdd(long num)
+        {
+            num += 1;
+            return Json(new 
+            {
+                num
+            });
+        }
+        #endregion
+
 
     }
 }

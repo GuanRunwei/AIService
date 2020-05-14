@@ -47,22 +47,6 @@ namespace AIService.Controllers
             else
             {
                 StockAccount stockAccount = db.StockAccounts.FirstOrDefault(s => s.UserId == loginUser.Id);
-                //double money = 0;
-                //if(stockAccount != null)
-                //{
-                    
-                //    List<SimulationStock> simulationStocks = db.SimulationStocks.Where(s => s.StockAccountId == stockAccount.Id && s.Valid == true).ToList();
-                //    if (simulationStocks == null)
-                //        money = stockAccount.ValidMoney;
-                //    if(simulationStocks!=null)
-                //    {
-                //        money = stockAccount.ValidMoney;
-                //        for(int i=0;i<simulationStocks.Count;i++)
-                //        {
-                //            money += simulationStocks[i].NowPrice * simulationStocks[i].StockNumber;
-                //        }
-                //    }
-                //}
                 string TalkNumber_Key = "UserId=" + loginUser.Id.ToString() + "&TalkNumber";
                 return ApiResponse.Ok(new
                 {
