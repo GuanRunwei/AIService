@@ -39,7 +39,7 @@ namespace AIService.Models
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
 #if DEBUG
-            optionsBuilder.UseSqlServer(@"data source=119.23.221.142,1433;initial catalog=AIStock;User Id=sa;Password=Grw19980628;MultipleActiveResultSets=true ");
+            optionsBuilder.UseSqlServer(@"data source=0.0.0.0,1433;initial catalog=AIStock;User Id=sa;Password=Grw19980628;MultipleActiveResultSets=true ");
 #else
             optionsBuilder.UseSqlServer(@"data source=.;initial catalog=AIStock;User Id=sa;Password=Grw19980628 ");
 #endif
